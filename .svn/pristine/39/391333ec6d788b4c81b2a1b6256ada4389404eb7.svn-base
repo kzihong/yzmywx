@@ -1,0 +1,79 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html >
+<%
+	HttpSession seesion = request.getSession();
+	String response_type = (String)seesion.getAttribute("response_type");
+	String scope = (String)seesion.getAttribute("scope");
+	String state = (String)seesion.getAttribute("state");
+	
+	System.out.print("iogin.jsp");
+	System.out.print(response_type);
+	System.out.print(scope);
+	System.out.print(state);
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>登录</title>
+<script type="text/javascript" src="jslib/jquery-1.9.1.js"></script>
+<script src="jslib/json2.js" type="text/javascript"></script>
+<script src="jslib/ajax.js" type="text/javascript"></script>
+<script type="text/javascript"> 
+	if (window != top) top.location.href = location.href; 
+</script>
+<%
+	String server_path = request.getContextPath();
+%>
+<style type="text/css">
+	#all{ width:380px; margin:0 auto; }
+</style>
+<script type="text/javascript">
+function doLogin(){
+	var inputMsg = $.trim($("#username").val());
+	var inputPWD = $.trim($("#password").val());
+	if(inputMsg == ""){
+		alert("请输入用户名"); return;
+	}else if(inputPWD == ""){
+		alert("请输入密码"); return;
+	}else{
+		var jsonobj = {
+			"loginname" : inputMsg,
+			"pwd" : inputPWD
+		};
+		var loginurl = "<%= server_path%>/rest/user/login";//servlet路径
+		var dataResult = postAjax(loginurl,jsonobj);
+		if(dataResult.success){
+			//跳转到管理后台首页
+			window.location="index.jsp";
+		}else{
+			alert(dataResult.msg);
+		}
+	}
+}
+$(document).ready(function(){
+	document.onkeydown = function(e){ 
+	    var ev = document.all ? window.event : e;
+	    if(ev.keyCode==13) {
+	    	doLogin();
+		}
+	};
+	$("#bt_Login").click(function(){
+		doLogin();
+	});
+	$('#username').focus();
+});
+
+</script>
+</head>
+<body>
+<div id="all">
+	<br/><br/>
+	<center>
+		<h3>系统登录</h3>
+		用户名：<input type='text' id="username" value="admin"/><br/>
+		密&nbsp;&nbsp;&nbsp;码：<input type='password' id="password" value="1"/><br/>
+		<button id="bt_Login"> 登录</button>
+	</center>
+</div>
+</body>
+</html>

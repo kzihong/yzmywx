@@ -1,0 +1,897 @@
+package cn.easycode.yzmywx.services.shop;
+
+import java.io.InputStream;
+import java.util.Date;
+import java.util.List;
+
+import javax.ejb.EJB;
+import javax.ejb.Stateless;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+
+import org.apache.commons.lang3.StringUtils;
+import org.codehaus.jackson.map.ObjectMapper;
+
+import cn.easycode.yzmywx.bean.eo.Customer;
+import cn.easycode.yzmywx.bean.eo.shop.Cartitem;
+import cn.easycode.yzmywx.bean.eo.shop.Delivery;
+import cn.easycode.yzmywx.bean.eo.shop.Payment;
+import cn.easycode.yzmywx.bean.eo.shop.Pevaluation;
+import cn.easycode.yzmywx.bean.eo.shop.Productorder;
+import cn.easycode.yzmywx.bean.eo.shop.Shipinfo;
+import cn.easycode.yzmywx.bean.eo.shop.Shippercoding;
+import cn.easycode.yzmywx.bean.vo.Grid;
+import cn.easycode.yzmywx.bean.vo.Page;
+import cn.easycode.yzmywx.bean.vo.ReturnJson;
+import cn.easycode.yzmywx.bean.vo.order.ShipCartitem;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Closeorder;
+import cn.easycode.yzmywx.bean.vo.weixinorder.CloseorderResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Downloadbill;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Orderquery;
+import cn.easycode.yzmywx.bean.vo.weixinorder.OrderqueryResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Refund;
+import cn.easycode.yzmywx.bean.vo.weixinorder.RefundResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Refundquery;
+import cn.easycode.yzmywx.bean.vo.weixinorder.RefundqueryResult;
+import cn.easycode.yzmywx.dao.shop.ProductOrderDao;
+import cn.easycode.yzmywx.utils.ConfigUtil;
+import cn.easycode.yzmywx.utils.DateUtil;
+import cn.easycode.yzmywx.utils.MD5Util;
+import cn.easycode.yzmywx.utils.OrderUtil;
+import cn.easycode.yzmywx.utils.SecurityUtil;
+import cn.easycode.yzmywx.utils.WeixinPay;
+
+@Stateless
+@Path("productorder")
+public class ProductOrderRest {
+	@EJB
+	private ProductOrderDao productOrderDao;
+
+	//下单，未付款
+	private static final short AWAITPAY = Short.parseShort(ConfigUtil.get("awaitPay"));
+	//已付款，待发货
+	private static final short PAID = Short.parseShort(ConfigUtil.get("paid"));
+	//已发货，待签收
+	private static final short SENT = Short.parseShort(ConfigUtil.get("sent"));
+	//已签收，待评价
+	private static final short CONFIRM = Short.parseShort(ConfigUtil.get("confirm"));
+	//完成订单
+	private static final short COMPLETE = Short.parseShort(ConfigUtil.get("complete"));
+	//申请售后
+	private static final short APPLYREFUND = Short.parseShort(ConfigUtil.get("applyRefund"));
+	//售后完成
+	private static final short REFUNDED = Short.parseShort(ConfigUtil.get("refunded"));
+	//取消订单
+	private static final short CANCELPRODUCTORDER = Short.parseShort(ConfigUtil.get("cancelProductOrder"));
+	
+	@POST
+	@Path("book")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String book(ShipCartitem shipCartitem, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		HttpSession session = request.getSession();
+		Customer customer = (Customer) session.getAttribute(ConfigUtil.get("customer"));
+		if (customer != null) {
+			try {
+				List<Cartitem> cartitems = shipCartitem.getCartitems();
+				Shipinfo shipinfo = shipCartitem.getShipinfo();
+				
+				//下单
+				returnjson = productOrderDao.book(customer, cartitems, shipinfo, request);
+			} catch (Exception e) {
+				e.printStackTrace();
+				returnjson.setMsg("下单失败！");
+				returnjson.setSuccess(false);
+			}
+		}else {
+			returnjson.setMsg("用户信息出错，下单失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@POST
+	@Path("pay/{id}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String pay(@PathParam("id") String id, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		Customer customer = (Customer) session.getAttribute(ConfigUtil.get("customer"));
+		if (customer != null) {
+			
+			//付款Payment payment
+			returnjson = productOrderDao.pay(customer, id, request);
+		}else {
+			returnjson.setMsg("付款失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@POST
+	@Path("updateDelivery/{id}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public ReturnJson updateDelivery(@PathParam("id") String productorderId,
+			Delivery delivery, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productOrderManager.delivery")) {
+			//发货
+			returnjson = productOrderDao.updateDelivery(productorderId, delivery);
+		}else {
+			returnjson.setMsg("对不起，无权限！");
+			returnjson.setSuccess(false);
+		}
+		return returnjson;
+	}
+	
+	@GET
+	@Path("getDelivery/{id}")
+	@Produces("application/json")
+	public String getDelivery(@PathParam("id") String id) {
+		Productorder productorder = productOrderDao.getById(id);
+		Delivery delivery = productorder.getDelivery();
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(delivery);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+
+	@GET
+	@Path("getPayment/{id}")
+	@Produces("application/json")
+	public String getPayment(@PathParam("id") String id) {
+		Productorder productorder = productOrderDao.getById(id);
+		Payment payment = productorder.getPayment();
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(payment);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	@POST
+	@Path("confirm/{id}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String confirm(@PathParam("id") String id, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		Customer customer = (Customer) session.getAttribute(ConfigUtil.get("customer"));
+		//确认收货
+		boolean result = productOrderDao.confirm(id, customer);
+		if (result) {
+			returnjson.setMsg("确认成功！");
+			returnjson.setSuccess(true);
+		}else{
+			returnjson.setMsg("确认失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	@POST
+	@Path("evaluate/{id}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String evaluate(@PathParam("id") String id,
+			Pevaluation pEvaluation, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		Customer customer = (Customer) session.getAttribute(ConfigUtil.get("customer"));
+		//评价订单
+		boolean result = productOrderDao.evaluate(id, pEvaluation, customer);
+		if (result) {
+			returnjson.setMsg("评价成功！");
+			returnjson.setSuccess(true);
+		}else{
+			returnjson.setMsg("评价失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	@POST
+	@Path("applyrefund/{id}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String applyrefund(@PathParam("id") String productorderId) {
+		ReturnJson returnjson = new ReturnJson();
+		//申请售后
+		boolean result = productOrderDao.applyrefund(productorderId);
+		if (result) {
+			returnjson.setMsg("申请成功！");
+			returnjson.setSuccess(true);
+		}else{
+			returnjson.setMsg("申请失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	@POST
+	@Path("refunded/{id}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String refunded(@PathParam("id") String productorderId) {
+		ReturnJson returnjson = new ReturnJson();
+		//售后完成
+		boolean result = productOrderDao.refunded(productorderId);
+		if (result) {
+			returnjson.setMsg("售后完成！");
+			returnjson.setSuccess(true);
+		}else{
+			returnjson.setMsg("操作失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	@POST
+	@Path("update")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String update(Productorder Productorder) {
+		ReturnJson returnjson = new ReturnJson();
+		if (!StringUtils.isBlank(Productorder.getId())) {
+			Productorder old = productOrderDao.getById(Productorder.getId());
+			
+			boolean result = productOrderDao.merge(old);
+			if (result) {
+				returnjson.setMsg("更新成功！");
+				returnjson.setSuccess(true);
+			}else{
+				returnjson.setMsg("更新失败！");
+				returnjson.setSuccess(false);
+			}
+		}else{
+			returnjson.setMsg("数据出错!");
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+
+	@POST
+	@Path("delete/{id}")
+	@Produces("application/json")
+	public String delete(@PathParam("id") String id, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productprderManager.delete")) {
+			boolean result = productOrderDao.delete(id);
+			if (result) {
+				returnjson.setMsg("删除成功！");
+				returnjson.setSuccess(true);
+			}else{
+				returnjson.setMsg("删除失败！");
+				returnjson.setSuccess(false);
+			}
+		}else {
+			returnjson.setMsg("对不起，无权限！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	@POST
+	@Path("cancel/{id}")
+	@Produces("application/json")
+	public String cancel(@PathParam("id") String id, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		Customer customer = (Customer) session.getAttribute(ConfigUtil.get("customer"));
+		//用户取消此订单
+		boolean result = productOrderDao.cancel(id, customer);
+		if (result) {
+			returnjson.setMsg("取消成功！");
+			returnjson.setSuccess(true);
+		}else{
+			returnjson.setMsg("取消失败！");
+			returnjson.setSuccess(false);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@GET
+	@Path("getShipinfo/{id}")
+	@Produces("application/json")
+	public String getShipinfo(@PathParam("id") String id) {
+		Productorder productorder = productOrderDao.getById(id);
+		Shipinfo shipinfo = productorder.getShipinfo();
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(shipinfo);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@POST
+	@Path("getPevaluations")
+	@Consumes("application/x-www-form-urlencoded")
+	@Produces("application/json")
+	public String getPevaluations(@FormParam("page") Integer page,@FormParam("rows") Integer rows,
+			@FormParam("orderSn") String orderSn, @FormParam("date") String dateString,
+			@FormParam("orderStatus") Short orderStatus,
+			@FormParam("contact") String contact,@FormParam("phoneNum") String phoneNum,
+			@FormParam("sort") String sort, @FormParam("order") String order) {
+		Grid returnjson = new Grid();
+		
+		Date date = DateUtil.stringToDate(dateString, "yyyy-MM-dd");
+		if (orderSn == null) {
+			//没有包含订单序列号的
+			Long total = productOrderDao.getSize(orderStatus, date, contact, phoneNum);
+			if(total > 0){
+				returnjson.setTotal(total);
+				List<Productorder> productorders = productOrderDao.getByCondition(page, rows, orderStatus, date, contact, phoneNum, sort, order);
+				
+				returnjson.setRows(productorders);
+			}
+		}else {
+			//含有订单序列号
+			List<Productorder> productorders = productOrderDao.getBySn(orderSn);
+			
+			returnjson.setTotal(1L);
+			returnjson.setRows(productorders);
+		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@GET
+	@Path("getById/{id}")
+	@Produces("application/json")
+	public String getById(@PathParam("id") String id) {
+		Productorder productorder = productOrderDao.getById(id);
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(productorder);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@POST
+	@Path("getBySn/{sn}")
+	@Produces("application/json")
+	public String getBySn(@PathParam("sn") String sn) {
+		Grid returnjson = new Grid();
+		List<Productorder> productorders = productOrderDao.getBySn(sn);
+		
+		returnjson.setTotal(1L);
+		returnjson.setRows(productorders);
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	/**
+	 * 用户获取他的订单
+	 */
+	@POST
+	@Path("getCustomerOrder")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String getCustomerOrder(Page page, @Context HttpServletRequest request) {
+		Grid returnjson = new Grid();
+		
+		HttpSession session = request.getSession();
+		Customer customer = (Customer) session.getAttribute(ConfigUtil.get("customer"));
+		
+		if (customer != null) {
+			
+			Long total  = productOrderDao.getCustomerOrderSize(customer.getOpenid());
+			returnjson.setTotal(total);
+			
+			List<Productorder> productorders = productOrderDao.getByCustomer(page.getPage(), page.getRows(), null, customer.getOpenid());
+			
+			//判断未付款订单是否超时
+			for (Productorder productorder : productorders) {
+				short status = productorder.getOrderStatus();
+				if (status == AWAITPAY) {
+					long createtime = productorder.getCreatetime();
+					long now = new Date().getTime();
+					//超过半天的未付款订单要取消
+					if (now > createtime + 1000*3600*12) {
+						//取消订单
+						productOrderDao.cancel(productorder.getId(), customer);
+						productorder.setOrderStatus(CANCELPRODUCTORDER);
+					}
+					
+				}
+			}
+			
+			returnjson.setRows(productorders);
+		}else {
+			returnjson.setTotal(0L);
+			returnjson.setRows(null);
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	@POST
+	@Path("getList")
+	@Consumes("application/x-www-form-urlencoded")
+	@Produces("application/json")
+	public String getList(@FormParam("page") Integer page,@FormParam("rows") Integer rows,
+			@FormParam("orderSn") String orderSn, @FormParam("date") String dateString,
+			@FormParam("orderStatus") Short orderStatus,
+			@FormParam("contact") String contact,@FormParam("phoneNum") String phoneNum,
+			@FormParam("sort") String sort, @FormParam("order") String order) {
+		Grid returnjson = new Grid();
+		
+		Date date = DateUtil.stringToDate(dateString, "yyyy-MM-dd");
+		if (orderSn == null) {
+			//没有包含订单序列号的
+			Long total = productOrderDao.getSize(orderStatus, date, contact, phoneNum);
+			if(total > 0){
+				returnjson.setTotal(total);
+				List<Productorder> productorders = productOrderDao.getByCondition(page, rows, orderStatus, date, contact, phoneNum, sort, order);
+				
+				returnjson.setRows(productorders);
+			}
+		}else {
+			//含有订单序列号
+			List<Productorder> productorders = productOrderDao.getBySn(orderSn);
+			
+			returnjson.setTotal(1L);
+			returnjson.setRows(productorders);
+		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	@SuppressWarnings("finally")
+	@POST
+	@Path("getShipperlist")
+	@Produces("application/json")
+	public String getShipperlist(){
+		List<Shippercoding> shippercodings = null;
+		String returnString  =null;
+		try {
+			shippercodings = productOrderDao.getShippercodings();
+			ObjectMapper objectMapper = new ObjectMapper();
+			returnString  = objectMapper.writeValueAsString(shippercodings);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			return returnString;
+		}
+	}
+	
+	
+	/**
+	 * 向微信查询订单
+	 * @param orderSn
+	 * @param request
+	 * @return
+	 */
+	@POST
+	@Path("checkorder/{orderSn}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String checkorder(@PathParam("orderSn") String orderSn, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productOrderManager.delivery")) {
+			Orderquery orderquery = new Orderquery();
+			orderquery.setAppid(ConfigUtil.get("appid"));
+			orderquery.setMch_id(ConfigUtil.get("mchid"));
+			orderquery.setNonce_str(OrderUtil.getUUID());//随机串
+			orderquery.setOut_trade_no(orderSn);
+			
+			//拼凑签名信息
+			StringBuilder sb = new StringBuilder();
+			sb.append("appid="+orderquery.getAppid())//
+				.append("&mch_id="+orderquery.getMch_id())//
+				.append("&nonce_str="+orderquery.getNonce_str())//
+				.append("&out_trade_no="+orderquery.getOut_trade_no())//
+				.append("&key="+ConfigUtil.get("signkey"));
+			//签名
+			orderquery.setSign(MD5Util.MD5Encode(sb.toString(),"UTF-8").toUpperCase());
+			
+			try {
+				OrderqueryResult orderqueryResult = WeixinPay.getResult(orderquery);
+				//返回状态码
+				if ("SUCCESS".equals(orderqueryResult.getReturn_code())) {
+					//业务结果
+					if ("SUCCESS".equals(orderqueryResult.getResult_code())) {
+						
+						returnjson.setSuccess(true);
+						returnjson.setMsg("订单信息获取成功");
+						returnjson.setObj(orderqueryResult);
+					}else {
+						returnjson.setSuccess(false);
+						returnjson.setMsg(orderqueryResult.getErr_code_des());
+					}
+				}else {
+					returnjson.setSuccess(false);
+					returnjson.setMsg(orderqueryResult.getReturn_msg());
+				}
+				
+			} catch (Exception e) {
+				returnjson.setSuccess(false);
+				returnjson.setMsg(e.toString());
+				e.printStackTrace();
+			}
+			
+		}else {
+			returnjson.setMsg("对不起，无权限！");
+			returnjson.setSuccess(false);
+		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	/**
+	 * 向微信关闭订单
+	 * @param orderSn
+	 * @param request
+	 * @return
+	 */
+	@POST
+	@Path("closeorder/{orderSn}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String closeorder(@PathParam("orderSn") String orderSn, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productOrderManager.delivery")) {
+			Closeorder closeorder = new Closeorder();
+			closeorder.setAppid(ConfigUtil.get("appid"));
+			closeorder.setMch_id(ConfigUtil.get("mchid"));
+			closeorder.setNonce_str(OrderUtil.getUUID());//随机串
+			closeorder.setOut_trade_no(orderSn);
+			
+			//拼凑签名信息
+			StringBuilder sb = new StringBuilder();
+			sb.append("appid="+closeorder.getAppid())//
+				.append("&mch_id="+closeorder.getMch_id())//
+				.append("&nonce_str="+closeorder.getNonce_str())//
+				.append("&out_trade_no="+closeorder.getOut_trade_no())//
+				.append("&key="+ConfigUtil.get("signkey"));
+			//签名
+			closeorder.setSign(MD5Util.MD5Encode(sb.toString(),"UTF-8").toUpperCase());
+			
+			try {
+				CloseorderResult closeorderResult = WeixinPay.getResult(closeorder);
+				//返回状态码
+				if ("SUCCESS".equals(closeorderResult.getReturn_code())) {
+					returnjson.setSuccess(true);
+					returnjson.setMsg("关闭订单成功");
+					returnjson.setObj(closeorderResult.getErr_code_des());
+				}else {
+					returnjson.setSuccess(false);
+					returnjson.setMsg(closeorderResult.getReturn_msg());
+				}
+				
+			} catch (Exception e) {
+				returnjson.setSuccess(false);
+				returnjson.setMsg(e.toString());
+				e.printStackTrace();
+			}
+			
+		}else {
+			returnjson.setMsg("对不起，无权限！");
+			returnjson.setSuccess(false);
+		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	/**
+	 * 向微信申请退款
+	 * @param orderSn
+	 * @param request
+	 * @return
+	 */
+	@POST
+	@Path("refundorder/{orderSn}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String refundorder(@PathParam("orderSn") String orderSn, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productOrderManager.delivery")) {
+			
+			List<Productorder> productorders = productOrderDao.getBySn(orderSn);
+			Productorder productorder = productorders.get(0);
+			
+			float totalPrice = productorder.getTotalPrice();
+			
+			Refund refund = new Refund();
+			refund.setAppid(ConfigUtil.get("appid"));
+			refund.setMch_id(ConfigUtil.get("mchid"));
+			refund.setNonce_str(OrderUtil.getUUID());//随机串
+			refund.setOut_trade_no(orderSn);
+			refund.setOut_refund_no(OrderUtil.getSn());//退单号
+			refund.setTotal_fee((int)(totalPrice*100));//总金额
+			refund.setRefund_fee((int)(totalPrice*100));//退款金额
+			refund.setRefund_fee_type("CNY");
+			refund.setOp_user_id(ConfigUtil.get("mchid"));
+			
+			//拼凑签名信息
+			StringBuilder sb = new StringBuilder();
+			sb.append("appid="+refund.getAppid())//
+				.append("&mch_id="+refund.getMch_id())//
+				.append("&nonce_str="+refund.getNonce_str())//
+				.append("&op_user_id="+refund.getOp_user_id())//
+				.append("&out_refund_no="+refund.getOut_refund_no())//
+				.append("&out_trade_no="+refund.getOut_trade_no())//
+				.append("&refund_fee="+refund.getRefund_fee())//
+				.append("&refund_fee_type="+refund.getRefund_fee_type())//
+				.append("&total_fee="+refund.getTotal_fee())//
+				.append("&key="+ConfigUtil.get("signkey"));
+			//签名
+			refund.setSign(MD5Util.MD5Encode(sb.toString(),"UTF-8").toUpperCase());
+			
+			try {
+				RefundResult refundResult = WeixinPay.getResult(refund);
+				//返回状态码
+				if ("SUCCESS".equals(refundResult.getReturn_code())) {
+					//业务结果
+					if ("SUCCESS".equals(refundResult.getResult_code())) {
+						
+						returnjson.setSuccess(true);
+						returnjson.setMsg("申请退款成功");
+						returnjson.setObj(refundResult);
+					}else {
+						returnjson.setSuccess(false);
+						returnjson.setMsg(refundResult.getErr_code_des());
+					}
+				}else {
+					returnjson.setSuccess(false);
+					returnjson.setMsg(refundResult.getReturn_msg());
+				}
+				
+			} catch (Exception e) {
+				returnjson.setSuccess(false);
+				returnjson.setMsg(e.toString());
+				e.printStackTrace();
+			}
+			
+		}else {
+			returnjson.setMsg("对不起，无权限！");
+			returnjson.setSuccess(false);
+		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	/**
+	 * 向微信查询退款
+	 * @param orderSn
+	 * @param request
+	 * @return
+	 */
+	@POST
+	@Path("refundquery/{orderSn}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public String refundquery(@PathParam("orderSn") String orderSn, @Context HttpServletRequest request) {
+		ReturnJson returnjson = new ReturnJson();
+		
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productOrderManager.delivery")) {
+			
+			Refundquery refundquery = new Refundquery();
+			refundquery.setAppid(ConfigUtil.get("appid"));
+			refundquery.setMch_id(ConfigUtil.get("mchid"));
+			refundquery.setNonce_str(OrderUtil.getUUID());//随机串
+			refundquery.setOut_trade_no(orderSn);
+			
+			//拼凑签名信息
+			StringBuilder sb = new StringBuilder();
+			sb.append("appid="+refundquery.getAppid())//
+				.append("&mch_id="+refundquery.getMch_id())//
+				.append("&nonce_str="+refundquery.getNonce_str())//
+				.append("&out_trade_no="+refundquery.getOut_trade_no())//
+				.append("&key="+ConfigUtil.get("signkey"));
+			//签名
+			refundquery.setSign(MD5Util.MD5Encode(sb.toString(),"UTF-8").toUpperCase());
+			
+			try {
+				RefundqueryResult refundqueryResult = WeixinPay.getResult(refundquery);
+				//返回状态码
+				if ("SUCCESS".equals(refundqueryResult.getReturn_code())) {
+					//业务结果
+					if ("SUCCESS".equals(refundqueryResult.getResult_code())) {
+						
+						returnjson.setSuccess(true);
+						returnjson.setMsg("申请退款成功");
+						returnjson.setObj(refundqueryResult);
+					}else {
+						returnjson.setSuccess(false);
+						returnjson.setMsg(refundqueryResult.getErr_code_des());
+					}
+				}else {
+					returnjson.setSuccess(false);
+					returnjson.setMsg(refundqueryResult.getReturn_msg());
+				}
+				
+			} catch (Exception e) {
+				returnjson.setSuccess(false);
+				returnjson.setMsg(e.toString());
+				e.printStackTrace();
+			}
+			
+		}else {
+			returnjson.setMsg("对不起，无权限！");
+			returnjson.setSuccess(false);
+		}
+		
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			return mapper.writeValueAsString(returnjson);
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+	
+	/**
+	 * 向微信下载对账单
+	 * @param orderSn
+	 * @param request
+	 * @return
+	 */
+	@POST
+	@Path("downloadbill/{orderSn}/{bill_type}")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public byte[] downloadbill(@PathParam("orderSn") String orderSn, @PathParam("bill_type") String bill_type, @Context HttpServletRequest request) {
+		
+		byte[] b = null;
+		
+		HttpSession session = request.getSession();
+		SecurityUtil securityUtil = new SecurityUtil(session);
+		//是否有权限
+		if (securityUtil.havePermission("productorder.productOrderManager.delivery")) {
+			
+			//ALL，返回当日所有订单信息，默认值
+			if (null == bill_type || "".equals(bill_type)) {
+				bill_type = "ALL";
+			}
+			Downloadbill downloadbill = new Downloadbill();
+			downloadbill.setAppid(ConfigUtil.get("appid"));
+			downloadbill.setMch_id(ConfigUtil.get("mchid"));
+			downloadbill.setNonce_str(OrderUtil.getUUID());//随机串
+			downloadbill.setBill_date(DateUtil.dateToString(new Date(),"yyyyMMdd"));
+			downloadbill.setBill_type(bill_type);
+			
+			//拼凑签名信息
+			StringBuilder sb = new StringBuilder();
+			sb.append("appid="+downloadbill.getAppid())//
+				.append("&bill_date="+downloadbill.getBill_date())//
+				.append("&bill_type="+downloadbill.getBill_type())//
+				.append("&mch_id="+downloadbill.getMch_id())//
+				.append("&nonce_str="+downloadbill.getNonce_str())//
+				.append("&key="+ConfigUtil.get("signkey"));
+			//签名
+			downloadbill.setSign(MD5Util.MD5Encode(sb.toString(),"UTF-8").toUpperCase());
+			
+			try {
+				InputStream ins = WeixinPay.getResult(downloadbill);
+				b = new byte[ins.available()];
+				ins.read(b);
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return b;
+	}
+	
+	
+}

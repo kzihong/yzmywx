@@ -1,0 +1,28 @@
+package cn.easycode.yzmywx.utils;
+
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+
+import sun.misc.BASE64Decoder;
+
+public class Base64Util {
+	public static boolean string2Image(String imgStr, String imgFilePath) throws Exception{  
+	    // 对字节数组字符串进行Base64解码并生成图片  
+	    if (imgStr == null)  
+	        return false;  
+	        // Base64解码  
+	        byte[] b = new BASE64Decoder().decodeBuffer(imgStr);  
+	        for (int i = 0; i < b.length; ++i) {  
+	            if (b[i] < 0) {  
+	                // 调整异常数据  
+	                b[i] += 256;  
+	            }  
+	        }  
+	        // 生成Jpeg图片  
+	        OutputStream out = new FileOutputStream(imgFilePath);  
+	        out.write(b);  
+	        out.flush();  
+	        out.close();  
+	        return true;  
+	}
+}

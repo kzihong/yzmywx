@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>韵宅木业</title>
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/shopping.css"/>
+    <link rel="stylesheet" href="./css/font.css"/>
+    <script src="./js/zepto.min.js"></script>
+    <script src="./js/scroll.js"></script>
+</head>
+<body>
+<div class="layout">
+    <h1 class="header">
+        新闻
+    </h1>
+
+    <div class="wrap">
+        <div class="box">
+            <img src="./img/T2dfvFXhVbXXXXXXXX_!!707994262.jpg" width="100%" height="100%" alt=""/>
+        </div>
+    </div>
+    <div class="wrap_box">
+	    <div style="display:none;" class="contentL">
+	        <a class="her" href="">
+	            <img class="productPictures" src="" height="100" width="100" alt=""/>
+	            <p class="title"></p>
+	            <p class="decription"></p>
+	        </a>
+	    </div>
+    </div>
+</div>
+</body>
+</html>

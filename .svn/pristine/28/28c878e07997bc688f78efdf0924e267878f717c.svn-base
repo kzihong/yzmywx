@@ -1,0 +1,27 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>news</title>
+    <link href="jslib/bootstrap-3.3.5-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="jslib/bootstrap-3.3.5-dist/css/bootstrap-switch.css" rel="stylesheet">
+  </head>
+  <body>
+    <div>
+      <input class="form-control" type="checkbox" checked>
+    </div>
+    <div>
+      <input type="checkbox" checked>
+    </div>
+    <script src="jslib/jquery-2.1.4.min.js"></script>
+    <script src="jslib/bootstrap-3.3.5-dist/js/bootstrap.min.js"></script>
+    <script src="jslib/bootstrap-3.3.5-dist/js/bootstrap-switch.js"></script>
+    <script>
+    $(function(argument) {
+      $('[type="checkbox"]').bootstrapSwitch();
+    });
+    </script>
+  </body>
+</html>

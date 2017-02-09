@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>韵宅木业</title>
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/sd.css"/>
+    <link rel="stylesheet" href="./css/font.css"/>
+    <script src="./js/zepto.min.js"></script>
+</head>
+<body>
+<div class="layout" id="layout">
+    <h1 class="header">
+        韵宅商城
+    </h1>
+
+</div>
+    <div class="nav">
+        <a href="#" class="icon-home"><br/><span>首页</span></a>
+        <a href="#" class="icon-stack"><br/><span>分类</span></a>
+        <a href="#" class="icon-cart"><br/><span>购物车</span></a>
+        <a href="#" class="icon-user"><br/><span>我的订单</span></a>
+    </div>
+
+<script>
+window.onload = function(){
+    var arrData = null;
+    var count = 1;
+
+    var oLayout = document.getElementById('layout');
+
+    var isSuccess = false;
+    var addShopp = function(){
+        $.ajax({
+            url:"rest/product/getDataByType",
+            type : "post",
+            contentType:"application/json;charset=utf-8",
+            dataType:"json",
+            data: JSON.stringify({
+                "page" : count,
+                "rows" : 10,
+                "requestData" : "sd",
+            }),
+            success:function(arrData){
+                for(var i=0;i<arrData.length;i++){
+                    var oDiv = document.createElement("div");
+                    oDiv.className = "content";
+                    oDiv.innerHTML = "<a href=\"\"><img class=\"productPictures\" src="+arrData[i].photoUrl+" height=\"100\" width=\"100\" alt=\"\"/><p><span class=\"productName\">"+arrData[i].name+"</span></p><p>单价<span class=\"price\">"+arrData[i].price+"</span></p><p>销量<span class=\"number\">"+arrData[i].productsales+"</span></p></a>";
+                    oLayout.appendChild(oDiv);
+                }
+                count++;
+                isSuccess = true;
+            }
+        });
+    };
+    addShopp()
+
+    window.onscroll = function(){
+        if(isSuccess&&(document.body.scrollTop > document.body.scrollHeight-1200)){
+        	addShopp();
+        }
+        isSuccess = false;
+    }
+}
+</script>
+</body>
+</html>

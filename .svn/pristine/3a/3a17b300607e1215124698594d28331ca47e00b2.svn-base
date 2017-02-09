@@ -1,0 +1,108 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="cn.easycode.yzmywx.bean.vo.SessionInfo"%>
+<%@ page import="cn.easycode.yzmywx.utils.ConfigUtil"%>
+<%
+	String contextPath = request.getContextPath();
+	SessionInfo sessionInfo = (SessionInfo) session.getAttribute(ConfigUtil.getSessionInfoName());
+	if (sessionInfo == null) {
+		request.getRequestDispatcher("/login.jsp").forward(request, response);
+	}
+	//String width = "300px", height = "300px", maxFiles = "1";
+	/* String action = request.getParameter("action");
+	if(action.equals("JnD") || action.equals("Yl")){
+		width = ConfigUtil.get("JdYlCoverPicW");
+		height = ConfigUtil.get("JdYlCoverPicH");
+	}else if(action.equals("Tc") || action.equals("JuD")){
+		width = ConfigUtil.get("JdTCCoverPicW");
+		height = ConfigUtil.get("JdTCCoverPicH");
+	}else if(action.equals("Ms")){
+		width = ConfigUtil.get("MsPicW");
+		height = ConfigUtil.get("MsPicH");
+		//maxFiles = "10";
+	} */
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="Jcrop-v0.9.12/css/jquery.Jcrop.css">
+<link rel="stylesheet" href="style/dropzone.css">
+<script src="jslib/jquery-2.0.3.js"></script>
+<script src="jslib/ajax.js"></script>
+<script src="jslib/json2.js"></script>
+<script src="jslib/dropzone.js"></script>
+<script type="text/javascript">
+jQuery(function($){
+	//剪裁的dropzone
+	$("#mydropzone").dropzone({
+			url : "/uploadimage",
+	        maxFiles: 1,
+	        maxFilesize: 5,
+	        addRemoveLinks : true,
+	        sending : function(){
+	        	parent.$.messager.progress({
+	    			text : '图片上传中....'
+	    		});
+	        },
+	        success : function(filedata,data){
+	        	var result = JSON.parse(data);
+				$("#mypreview").attr("src",result.url);
+				$("#photoUrl").val(result.url);
+				parent.$.messager.progress('close');
+	        },
+			accept: function(file, done) {
+				//判断必须为图片类型
+				var f = file.name;
+			    if( f== "")
+			    { alert("请上传图片");return false;}
+			    else
+			    {
+				    if(!/\.(gif|jpg|jpeg|png|GIF|JPG|PNG)$/.test(f))
+				    {
+				      alert("图片类型必须是.gif,jpeg,jpg,png中的一种");
+				      return false;
+				    }
+			    }
+			    //继续执行done()
+			    done();
+			}
+
+	});
+});
+
+var submitPhoto = function($dialog){
+	var photoUrl = $("#photoUrl").val();
+	if(photoUrl){
+		$dialog.dialog('destroy');
+		return photoUrl;
+	} else {
+		$pjq.messager.alert('提示', "请上传图片", 'error');
+	}
+	
+};
+
+</script>
+<style type="text/css">
+.upload-form{
+	display: inline-block ;
+	float: left;
+    width: 200px;
+    height: auto;
+    margin-right: 50px; 
+}
+ </style>
+<title>Jcrop</title>
+</head>
+<body>
+	<div class="upload-form">
+		<form action="" class="dropzone" id="mydropzone"></form>
+		<input type="hidden" id="photoUrl" />
+	</div>
+	<!-- 预览面板 -->
+	<div id="preview-pane" style="float:left;">
+		  <div class="preview-container">
+		    <img id="mypreview" src="" style="width:500px;" />
+		  </div>
+	</div>
+</body>
+</html>

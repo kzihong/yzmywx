@@ -1,0 +1,173 @@
+package cn.easycode.yzmywx.services.editor;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Date;
+
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+
+import org.codehaus.jackson.map.ObjectMapper;
+
+import com.sun.xml.rpc.processor.modeler.j2ee.xml.variableMappingType;
+
+import cn.easycode.yzmywx.bean.eo.Accesstoken;
+import cn.easycode.yzmywx.bean.vo.ReturnData;
+import cn.easycode.yzmywx.bean.vo.SearchData;
+import cn.easycode.yzmywx.utils.Base64Util;
+import cn.easycode.yzmywx.utils.ConfigUtil;
+import cn.easycode.yzmywx.utils.OrderUtil;
+import cn.easycode.yzmywx.utils.WeixinUtil;
+
+@Stateless
+@Path("editor")
+public class EditorRest {
+	@Context
+	private ServletContext servletContext;
+	
+	@PersistenceContext(unitName = "yzmywx")
+	private EntityManager em;
+	
+	@SuppressWarnings("finally")
+	@GET
+	@Path("file/{filetype}/{date}/{filename}")
+	public byte[] getFile(@Context HttpServletRequest request,@PathParam("filetype") String filetype, 
+			@PathParam("date") String date,@PathParam("filename") String filename) {
+		FileInputStream fis = null;
+		byte[] b = null;
+		try {
+			String path = ConfigUtil.get("newsPhotoPath") + File.separatorChar + filetype + File.separatorChar + date + File.separatorChar + filename;
+			fis = new FileInputStream(new File(path));
+			b = new byte[fis.available()];
+			fis.read(b);
+		} catch (Exception e) {
+			b = null;
+		} finally {
+			try {
+				if (fis != null) {
+					fis.close();
+				}
+			} catch (Exception e2) {
+				b = null;
+			}
+			return b;
+		}
+	}
+	/**
+	 * getPIC/image/123.jpg
+	 * @param fileType
+	 * @param fileName
+	 * @return
+	 */
+	@SuppressWarnings("finally")
+	@GET
+	@Path("getPIC/{fileType}/{fileName}")
+	public byte[] getPIC(@PathParam("fileType") String fileType,@PathParam("fileName") String fileName){
+		byte[] b = null;
+		FileInputStream fis = null;
+		try {
+			String path = ConfigUtil.get("newsPhotoPath") + File.separatorChar + fileType + File.separatorChar + fileName;
+			fis = new FileInputStream(new File(path));
+			b = new byte[fis.available()];
+			fis.read(b);
+		} catch (Exception e) {
+			b = null;
+		} finally {
+			try {
+				if (fis != null) {
+					fis.close();
+				}
+			} catch (Exception e2) {
+				b = null;
+			}
+			return b;
+		}
+	}
+	
+	
+	@SuppressWarnings("finally")
+	@Path("uploadImage")
+	@POST
+	@Consumes("application/json")
+	public String uploadPic(SearchData searchData){
+		ReturnData returnData = new ReturnData();
+		String returnString = null;
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			String base64String = searchData.getBase64code();
+			String a[] = base64String.split(",");
+			//data:image/gif;base64
+			String b[] = a[0].split("/");
+			String d[] = b[0].split(":");
+			String c[] = b[1].split(";");
+			String fileType = c[0];
+			String serverPathString = "/"+d[1]+"/"+OrderUtil.getUUID()+"."+fileType;
+			String imgFilePath = ConfigUtil.get("newsPhotoPath")+ serverPathString;
+			System.out.println(imgFilePath);
+			System.out.println(a[1]);
+			if(Base64Util.string2Image(a[1], imgFilePath)){
+				returnData.setErrmsg("/rest/editor/getPIC"+serverPathString);
+				returnData.setSuccess(true);
+				returnString = objectMapper.writeValueAsString(returnData);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			return returnString;
+		}
+	}
+	
+	@SuppressWarnings("finally")
+	@Path("downloadPic/{mediaid}")
+	@POST
+	@Consumes("application/json")
+	public String downloadPic(@PathParam("mediaid") String mediaid){
+		ReturnData returnData = new ReturnData();
+		String returnString = null;
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			String fileName = ConfigUtil.get("newsPhotoPath") +"/image/"+mediaid+".jpg";
+			File file = WeixinUtil.downloadMedia(fileName, getAT(), mediaid);
+			if(file != null){
+				String returnfilenameString = "/rest/editor/getPIC/image/"+mediaid+".jpg";
+				returnData.setErrmsg(returnfilenameString);
+			}
+			returnString = objectMapper.writeValueAsString(returnData);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			return returnString;
+		}
+	}
+	
+	public String getAT() throws Exception{
+		Accesstoken at = em.find(Accesstoken.class, "1");
+		if(at != null){
+			if(new Date().getTime() - at.getCreatetime().getTime() < 1000*3600){
+				return at.getToken();
+			}else{
+				at.setCreatetime(new Date());
+				at.setToken(WeixinUtil.getAccessToken(ConfigUtil.get("appid"),ConfigUtil.get("appsecret")));
+				em.merge(at);
+				return at.getToken();
+			}
+		}else{
+			at = new Accesstoken();
+			at.setCreatetime(new Date());
+			at.setToken(WeixinUtil.getAccessToken(ConfigUtil.get("appid"),ConfigUtil.get("appsecret")));
+			at.setId("1");
+			em.persist(at);
+			return at.getToken();
+		}
+	}
+}

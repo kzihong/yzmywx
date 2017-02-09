@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>韵宅木业</title>
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/shopping.css"/>
+    <link rel="stylesheet" href="./css/font.css"/>
+    <script src="./js/zepto.min.js"></script>
+    <script src="./js/util.js"></script>
+</head>
+<body>
+<div class="layout">
+    <h1 class="header">
+        韵宅商城
+    </h1>
+
+    <div class="wrap">
+        <div class="box">
+            <img src="./img/T2dfvFXhVbXXXXXXXX_!!707994262.jpg" width="100%" alt=""/>
+            <img src="./img/T2ad8TXAJaXXXXXXXX_!!707994262.jpg" height="405" width="1920"alt=""/>
+            <img src="./img/T2dfvFXhVbXXXXXXXX_!!707994262.jpg"height="405" width="1920" alt=""/>
+        </div>
+    </div>
+    <script>
+        $(function () {
+//        获取图片个数并设置每个图片宽度
+            var imgLen = $(".box").find("img").length
+            var imgWid = 100 / imgLen
+            $(".box").find("img").css("width", imgWid + "%");
+
+//        动态设置图片盒子宽度
+            var cWin = $(window).width();
+            var cWidth = cWin;
+            $(".box").css("width", cWidth * imgLen);
+
+//            $(".wrap").click(function(e){
+//                var middle=Math.round(cWin/2)
+//                var objLeft=parseInt($(".box").css("left"))
+//                if(e.pageX>=middle){
+//                    if(!(objLeft<=-4*cWin)) {
+//                        $(this).find(".box").animate({"translate":"-" + imgWid+"%"}, 1500)
+//                    }
+//                }
+//                else{
+//                    if(objLeft!=0) {
+//                        $(this).find(".box").animate({"left": "+" + imgWid+"%"}, 1500)
+//                    }
+//                }
+//            })
+
+//            添加触摸事件
+            $(".wrap").swipeLeft(function () {
+                var iLeft = parseInt($(".box").css("left"))
+                var iWidth = iLeft - cWidth
+                var max=-parseInt($(".box").css("width"))
+                if (iWidth > max) {
+                    animation(document.getElementsByClassName("box")[0], {"left": iWidth})
+                }
+            })
+
+            $(".wrap").swipeRight(function () {
+                var iRight = parseInt($(".box").css("left"))
+                var iWidth = iRight + cWidth
+                if (iWidth <= 0) {
+                    animation(document.getElementsByClassName("box")[0], {"left": iWidth})
+                }
+
+            })
+
+        })
+    </script>
+    <div class="search"><input class="search-box" type="text" placeholder="搜索商品"></div>
+    <a href="" style="margin: 10px 0;"><img src="img/T2ad8TXAJaXXXXXXXX_!!707994262.jpg" width="100%" alt=""></a>
+    <a href="" style="margin: 10px 0;"><img src="img/203833882568786330.jpg" width="100%" alt=""></a>
+    <div class="contentL">
+        <a href="">
+            <img class="productPictures" src="img/7435522192543038.jpg" height="100" width="100" alt=""/>
+            <p><span class="productName">钛合金铁门</span></p>
+            <p>单价<span class="price">320</span></p>
+            <p>销量<span class="number">1320</span></p>
+        </a>
+    </div>
+    <div class="contentL">
+        <a href="">
+            <img class="productPictures" src="img/7435522192543038.jpg" height="100" width="100" alt=""/>
+            <p><span class="productName">钛合金水管</span></p>
+            <p>单价<span class="price">80</span></p>
+            <p>销量<span class="number">150</span></p>
+        </a>
+    </div>
+    <a href="" style="margin: 10px 0;"><img src="img/794244256785441423.jpg" width="100%" alt=""></a>
+    <div class="content first">
+        <a href="">
+            <img class="productPictures" src="img/TB1UEmgIXXXXXbeXFXXXXXXXXXX_!!0-item_pic.jpg_360x360.jpg" height="100%" width="100%" alt=""/>
+            <span class="productName">钛合金门锁</span><br />
+            单价<span class="price">999</span><br />
+            销量<span class="number">999</span><br />
+        </a>
+    </div>
+    <div class="content">
+        <a href="">
+            <img class="productPictures" src="img/TB1UEmgIXXXXXbeXFXXXXXXXXXX_!!0-item_pic.jpg_360x360.jpg" height="100%" width="100%" alt=""/>
+            <span class="productName">钛合金门锁</span><br />
+            单价<span class="price">999</span><br />
+            销量<span class="number">999</span><br />
+        </a>
+    </div>
+    <div class="content">
+        <a href="">
+            <img class="productPictures" src="img/TB1UEmgIXXXXXbeXFXXXXXXXXXX_!!0-item_pic.jpg_360x360.jpg" height="100%" width="100%" alt=""/>
+            <span class="productName">钛合金门锁</span><br />
+            单价<span class="price">999</span><br />
+            销量<span class="number">999</span><br />
+        </a>
+    </div>
+    <a href="" style="margin: 10px 0;"><img src="img/808654535279728026.jpg" width="100%" alt=""></a>
+    <div class="content first">
+        <a href="">
+            <img class="productPictures" src="img/250093251499528499.jpg" height="100%" width="100%" alt=""/>
+            <span class="productName">木门</span><br />
+            单价<span class="price">999</span><br />
+            销量<span class="number">999</span><br />
+        </a>
+    </div>
+    <div class="content">
+        <a href="">
+            <img class="productPictures" src="img/250093251499528499.jpg" height="100%" width="100%" alt=""/>
+            <span class="productName">木门</span><br />
+            单价<span class="price">999</span><br />
+            销量<span class="number">999</span><br />
+        </a>
+    </div>
+    <div class="content">
+        <a href="">
+            <img class="productPictures" src="img/250093251499528499.jpg" height="100%" width="100%" alt=""/>
+            <span class="productName">木门</span><br />
+            单价<span class="price">999</span><br />
+            销量<span class="number">999</span><br />
+        </a>
+    </div>
+    <div class="clearfix"></div>
+    <div class="nav">
+        <a href="#" class="icon-home"><br/><span>首页</span></a>
+        <a href="#" class="icon-stack"><br/><span>分类</span></a>
+        <a href="#" class="icon-cart"><br/><span>购物车</span></a>
+        <a href="#" class="icon-user"><br/><span>我的订单</span></a>
+    </div>
+</div>
+</body>
+</html>

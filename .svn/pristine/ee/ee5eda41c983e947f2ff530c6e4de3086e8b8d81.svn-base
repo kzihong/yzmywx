@@ -1,0 +1,99 @@
+.header {
+    background-color: #ec5151;
+    color: #fff;
+    padding: 5px 0;
+    font-size: 20px;
+    width: 100%
+}
+
+.wrap {
+    overflow: hidden;
+    position: relative;
+    height: 160px;
+}
+.content {
+    float: left;    
+    padding: 5px;
+    margin: 10px 3px;
+    text-align: left;
+    font-size: 12px;
+    border: 1px solid rgb(230,230,230);
+    color: rgb(150,150,150);
+    width: 27%
+}
+.first {
+    margin-left: 2%;
+}
+.productPictures {
+    border: 0;
+}
+.content a:visited {
+    color: rgb(150,150,150);
+}
+.wrap img {
+    float: left;
+}
+.contentL a {
+	color: rgb(150,150,150);
+}
+.contentL a:visited {
+    color: rgb(150,150,150);
+}
+.box{
+    position: absolute;
+    left:0;
+}
+.nav {
+    width: 100%;
+    background-color: #FFFFFF;
+    padding-top: 6px;
+    border-top: 1px solid #cccccc;
+    padding-bottom: 4px;
+}
+
+.nav a {
+    display: inline-block;
+    width: 24%;
+    color: #999;
+    text-align: center;
+    font-size: 24px;
+}
+
+.nav a span{font-size: 18px;}
+.clearfix {
+    clear:both;
+}
+.search {
+    width: 100%;
+    margin: 0 auto;
+}
+.search-box {
+    width: 90%;
+     border: 1px solid #c0c0c0; 
+     border-radius: 1px;
+     height: 28px;
+     margin: 10px 0;
+}
+.contentL {
+    width: 80%;
+    padding: 5px;
+    margin: 10px auto;
+    text-align: left;
+    font-size: 12px;
+    overflow: hidden;
+    border: 1px solid rgb(230,230,230);
+    color: rgb(150,150,150);
+}
+.contentL .title{
+	font-size:14px;
+}
+.contentL .decription{
+	font-size:10px;
+}
+.contentL .productPictures {
+    float: left;
+    margin-right: 10px;
+}
+.contentL a:visited {
+    color: rgb(150,150,150);
+}

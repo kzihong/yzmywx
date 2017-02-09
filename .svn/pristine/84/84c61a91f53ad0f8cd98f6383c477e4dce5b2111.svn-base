@@ -1,0 +1,75 @@
+package cn.easycode.yzmywx.bean.vo;
+
+/**
+ * 	private String groupid;
+	private String openid;
+	private String remark;
+	private String base64code;
+	private String signature;
+	private String nonceStr;
+	private int timestap; 
+	private String url;
+ * @author FANCY
+ *
+ */
+public class SearchData implements java.io.Serializable {
+	private static final long serialVersionUID = 1158576530001281109L;
+	private String groupid;
+	private String openid;
+	private String remark;
+	private String base64code;
+	private String signature;
+	private String nonceStr;
+	private int timestap; 
+	private String url;
+	
+	public String getBase64code() {
+		return base64code;
+	}
+	public void setBase64code(String base64code) {
+		this.base64code = base64code;
+	}
+	public String getGroupid() {
+		return groupid;
+	}
+	public void setGroupid(String groupid) {
+		this.groupid = groupid;
+	}
+	public String getOpenid() {
+		return openid;
+	}
+	public void setOpenid(String openid) {
+		this.openid = openid;
+	}
+	public String getRemark() {
+		return remark;
+	}
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	public String getSignature() {
+		return signature;
+	}
+	public void setSignature(String signature) {
+		this.signature = signature;
+	}
+	public String getNonceStr() {
+		return nonceStr;
+	}
+	public void setNonceStr(String nonceStr) {
+		this.nonceStr = nonceStr;
+	}
+	public int getTimestap() {
+		return timestap;
+	}
+	public void setTimestap(int timestap) {
+		this.timestap = timestap;
+	}
+	public String getUrl() {
+		return url;
+	}
+	public void setUrl(String url) {
+		this.url = url;
+	}
+	
+}

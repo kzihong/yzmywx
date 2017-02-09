@@ -1,0 +1,61 @@
+body {
+    background: rgb(239, 240, 240);
+}
+
+.wrap_box {
+    border-radius: 30px;
+    width: 90%;
+    background-color: white;
+    margin: 0 auto;
+    margin-top: 20px;
+    padding-top: 5px;
+    padding-bottom: 10px;
+}
+
+p {
+    margin: 0;
+    text-align: left;
+    margin-left: 40px;
+    margin-right: 40px;
+    margin-top: 20px;
+}
+
+
+.idcard{
+    float: right;
+}
+
+.line {
+    height: 1px;
+    background-color: #cccccc;
+    margin-left: 40px;
+    margin-right: 40px;
+    margin-top: 30px;
+}
+
+.font {
+    font-size: 48px
+}
+
+button{
+    font-size: 35px;
+    float:right;
+}
+
+.btn{
+    margin-top: 20px;
+    display: inline-block;
+    font-size: 48px;
+    background-color: #3DCE3D;
+    color:white;
+    padding: 8px 16px;
+    border-radius: 7px;
+}
+.btn_wrap {
+    width: 80%;
+    margin: 0 auto;
+}
+.btn_wrap .lastBtn {
+    display: inline-block;
+    float:right;
+}

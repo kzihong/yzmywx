@@ -1,0 +1,43 @@
+package cn.easycode.yzmywx.bean.eo.shop;
+
+import java.io.Serializable;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+
+/**
+ * The persistent class for the paymenttype database table.
+ * 
+ */
+@Entity
+@Table(name = "paymenttype")
+public class Paymenttype implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	private String id;
+
+	private String name;
+
+	public Paymenttype() {
+	}
+
+	public String getId() {
+		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+}

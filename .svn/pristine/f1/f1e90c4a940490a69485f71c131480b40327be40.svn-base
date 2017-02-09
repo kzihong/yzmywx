@@ -1,0 +1,470 @@
+package cn.easycode.yzmywx.dao.system;
+
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
+import org.apache.commons.lang3.StringUtils;
+
+import cn.easycode.yzmywx.bean.eo.Resource;
+import cn.easycode.yzmywx.bean.eo.Role;
+import cn.easycode.yzmywx.bean.eo.User;
+import cn.easycode.yzmywx.bean.vo.Tree;
+
+
+@Stateless
+public class RoleDao {
+	@PersistenceContext(unitName = "yzmywx")
+	private EntityManager em;
+
+	public RoleDao() {
+	}
+
+	public Role find(String id) throws Exception {
+		return em.find(Role.class, id);
+	}
+
+	public void grantResource(Role r) throws Exception {
+		Role role = em.find(Role.class, r.getId());
+		if (null != role) {
+			role.setResources(new ArrayList<Resource>());
+			if (null != r.getResources()) {
+				for (int i = 0; i < r.getResources().size() && !StringUtils.isBlank(r.getResources().get(i).getId()); i++) {
+					role.getResources().add(em.getReference(Resource.class, r.getResources().get(i).getId()));
+				}
+			}
+		} else {
+			throw new Exception("数据出错!");
+		}
+	}
+
+	public void save(Role role) throws Exception {
+		if(!isHasRoleName(null,role.getName())){
+			role.setId(role.getId());
+			em.persist(role);
+		}else{
+			throw new Exception("新建角色名称 " + role.getName() + " 已经存在！");
+		}
+	}
+
+	public void update(Role role) throws Exception {
+		if (!isHasRoleName(role.getId(), role.getName())) {
+			Role oldrole = em.find(Role.class, role.getId());
+			oldrole.setName(role.getName());
+			oldrole.setType(role.getType());
+			oldrole.setDescription(role.getDescription());
+			oldrole.setSeq(role.getSeq());
+			em.merge(oldrole);
+		} else {
+			throw new Exception("更新角色失败，角色名已存在！");
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public boolean isHasRoleName(String id, String rolename) throws Exception {
+		boolean result = true;
+		String sql = "select role from Role role where role.name=:rolename";
+		if (null != id) {
+			sql += " and role.id!=:id ";
+		}
+		Query query = em.createQuery(sql);
+		if (null != id) {
+			query.setParameter("id", id);
+		}
+		query.setParameter("rolename", rolename);
+		List<Role> list = query.getResultList();
+		if (list.size() == 0)
+			result = false;
+		return result;
+	}
+
+	public User merge(User user) throws Exception {
+		User newuser = em.merge(user);
+		return newuser;
+	}
+
+	public void delete(String id) throws Exception {
+		Role role = em.find(Role.class, id);
+		if (null == role) {
+			throw new Exception("数据出错!");
+		} else if (role.getType().equals("0")) {
+			throw new Exception("系统角色不能删除!");
+		} else {
+			List<User> userlist = role.getUsers();
+			User user = null;
+			for (int i = 0; i < userlist.size(); i++) {
+				user = userlist.get(i);
+				user.removeRole(role);
+			}
+
+			List<Resource> resourcelist = role.getResources();
+			Resource resource = null;
+			for (int i = 0; i < resourcelist.size(); i++) {
+				resource = resourcelist.get(i);
+				role.removeResource(resource);
+			}
+			em.remove(role);
+		}
+	}
+
+	public List<Tree> getUserRoles(String userid) throws Exception {
+		List<Tree> returnlist = new ArrayList<Tree>();
+		User user = em.find(User.class, userid);
+		if (null != user) {
+			List<Role> rolelist = user.getRoles();
+			Role role = null;
+			Tree tree = null;
+			for (int i = 0; i < rolelist.size(); i++) {
+				role = rolelist.get(i);
+
+				tree = new Tree();
+				tree.setId(role.getId());
+				tree.setText(role.getName());
+				returnlist.add(tree);
+			}
+		}
+
+		return returnlist;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Tree> getRolesTree() throws Exception {
+		List<Tree> returnlist = new ArrayList<Tree>();
+		Query query = em.createQuery("select bean from Role bean order by bean.seq");
+		
+		List<Role> rolelist = query.getResultList();
+		Role role = null;
+		Tree tree = null;
+		for (int i = 0; i < rolelist.size(); i++) {
+			role = rolelist.get(i);
+
+			tree = new Tree();
+			tree.setId(role.getId());
+			tree.setText(role.getName());
+			returnlist.add(tree);
+		}
+
+		return returnlist;
+	}
+
+	public Long getRoleListSize(String name) throws Exception {
+		Long total = 0l;
+		String count_sql = "select count(role) from Role role where 1=1 ";
+		String where_sql = "";
+		if (null != name) {
+			where_sql += " and role.name like :name ";
+		}
+
+		Query query = em.createQuery(count_sql + where_sql);
+
+		if (null != name) {
+			query.setParameter("name", "%" + name + "%");
+		}
+		Object object = query.getSingleResult();
+		if (null != object) {
+			total = (Long) object;
+		}
+
+		return total;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Role> getRoleList(Integer page, Integer rows, String name, String sort, String order) throws Exception {
+		String query_sql = "select role from Role role where 1=1 ";
+		String where_sql = "";
+		if (null != name) {
+			where_sql += " and role.name like :name ";
+		}
+
+		String order_sql = " order by role.type desc,role.seq";
+		if (null != sort && !"".equals(sort)) {
+			order_sql = " order by role." + sort;
+			if (null != order && !"".equals(order)) {
+				order_sql += " " + order;
+			}
+		}
+		Query query = em.createQuery(query_sql + where_sql + order_sql);
+
+		if (null != name) {
+			query.setParameter("name", "%" + name + "%");
+		}
+
+		if (null == rows)
+			rows = 10;
+		if (null == page)
+			page = 1;
+
+		query.setMaxResults(rows);
+		query.setFirstResult((page - 1) * rows);
+		List<Role> rolelist = query.getResultList();
+		return rolelist;
+	}
+	
+	public List<User> getWokerlist() {
+		try {
+			/*Query query = em.createQuery("select bean.users from Role bean where bean.id = 'cda54e35-5f8c-4b30-a51e-d4d6efc90438'");
+			List<User> list = query.getResultList();*/
+			em.flush();
+			List<User> list = em.find(Role.class, "cda54e35-5f8c-4b30-a51e-d4d6efc90438").getUsers();
+			return list;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public Long getWorkerListSize(String loginname, String name, String groupid) {
+		/*String count_sql = "select bean.users from Role bean where bean.id = 'cda54e35-5f8c-4b30-a51e-d4d6efc90438' ";
+		Query query = em.createQuery(count_sql);
+		@SuppressWarnings("unchecked")*/
+		List<User> userlist_temp = em.find(Role.class, "cda54e35-5f8c-4b30-a51e-d4d6efc90438").getUsers();
+		List<User> userlist = new ArrayList<User>();
+		if(null == groupid && null == name && null == loginname){
+			userlist = userlist_temp;
+		}else{
+			for(User user : userlist_temp){
+				if(null != loginname){
+					if(user.getLoginname().indexOf(loginname) >= 0){
+						userlist.add(user);
+						continue;
+					}
+				}
+				if(null != name){
+					if(user.getName().indexOf(name) >= 0){
+						userlist.add(user);
+						continue;
+					}
+				}
+				if(null != groupid){
+					if(user.getWorkergroup().getId().equals(groupid)){
+						userlist.add(user);
+						continue;
+					}
+				}
+			}
+		}
+		return (long)userlist.size();
+	}
+
+	public List<User> getWorkerList(Integer page, Integer rows, String loginname,
+			String name, String groupid, String sort, String order) {
+		/*String query_sql = "select bean.users from Role bean where bean.id = 'cda54e35-5f8c-4b30-a51e-d4d6efc90438' ";
+		Query query = em.createQuery(query_sql);*/
+		List<User> userlist_temp = em.find(Role.class, "cda54e35-5f8c-4b30-a51e-d4d6efc90438").getUsers();
+		List<User> userlist = new ArrayList<User>();
+		/**
+		 * i 索引
+		 * j 列表中个数
+		 * k 当前符合条件个数
+		 * rows*page 起始数
+		 * rows 捕捉数
+		 * 
+		 */
+		if(null == groupid && null == name && null == loginname){
+			if(userlist_temp.size() < rows){
+				userlist = userlist_temp;
+				for(User user : userlist){
+					user.setGrade(getGrade(user.getId()));
+					user.setSatisfied(getSatisfied(user.getId()));
+				}
+				return userlist;
+			}
+			for(int i=0,j=0,l=0 ; i< userlist_temp.size() && l < rows; i++){
+				j++;
+				if(j > (page-1)*rows ){
+					userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+					userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+					userlist.add(userlist_temp.get(i));
+					l++;
+				}
+			}
+			return  userlist;
+		}
+		for(int i=0,j=0,k=0 ; i < userlist_temp.size() && j < rows ; i++){
+			if(null != groupid){
+				if(userlist_temp.get(i).getWorkergroup().getId().equals(groupid)){
+					k++;
+					if(k >= (page-1)*rows){
+						userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+						userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+						userlist.add(userlist_temp.get(i));
+						j++;
+					}
+					continue;
+				}else{
+					continue;
+				}
+			}
+			
+			if(null != loginname){
+				if(userlist_temp.get(i).getLoginname().indexOf(loginname) >= 0){
+					k++;
+					if(k >= (page-1)*rows){
+						userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+						userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+						userlist.add(userlist_temp.get(i));
+						j++;
+					}
+					continue;
+				}else{
+					continue;
+				}
+			}
+			
+			if(null != name){
+				if(userlist_temp.get(i).getName().indexOf(name) >= 0){
+					k++;
+					if(k >= (page-1)*rows){
+						userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+						userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+						userlist.add(userlist_temp.get(i));
+						j++;
+					}
+					continue;
+				}else{
+					continue;
+				}
+			}
+		}
+		return userlist;
+	}
+
+	@SuppressWarnings("unchecked")
+	private String getSatisfied(String id) {
+		String jpqlString = "select bean.grade from Evaluation bean where bean.repairorder.user.id = :userid";
+		Query query = em.createQuery(jpqlString);
+		query.setParameter("userid", id);
+		List<Short> grades = query.getResultList();
+		NumberFormat nt = NumberFormat.getPercentInstance();
+		nt.setMinimumFractionDigits(1);
+		float j = 0f;
+		float i = 0f;
+		for(Short grade : grades){
+			j++;
+			if(grade == 5){
+				i++;
+			}
+		}
+		if(j == 0f){
+			j= 1f;
+			i= 1f;
+		}
+		return nt.format(i/j);
+	}
+
+	@SuppressWarnings("unchecked")
+	private String getGrade(String id) {
+		String jpqlString = "select bean.grade from Evaluation bean where bean.repairorder.user.id = :userid";
+		Query query = em.createQuery(jpqlString);
+		query.setParameter("userid", id);
+		List<Short> grades = query.getResultList();
+		float sum = 0f;
+		float num = 0f;
+		for(Short grade : grades){
+			sum += grade;
+			num ++;
+		}
+		if(num == 0f){
+			sum = 5f;
+			num = 1f;
+		}
+		String returnString =String.format("%.1f",sum/num);
+		return returnString;
+	}
+
+	public List<User> shopManagers(Integer page, Integer rows, String loginname,
+			String name, String sort, String order) {
+		List<User> userlist_temp = em.find(Role.class, "shangchengguanliyuan").getUsers();
+		List<User> userlist = new ArrayList<User>();
+		/**
+		 * i 索引
+		 * j 列表中个数
+		 * k 当前符合条件个数
+		 * rows*page 起始数
+		 * rows 捕捉数
+		 * 
+		 */
+		if(null == name && null == loginname){
+			if(userlist_temp.size() < rows){
+				userlist = userlist_temp;
+				for(User user : userlist){
+					user.setGrade(getGrade(user.getId()));
+					user.setSatisfied(getSatisfied(user.getId()));
+				}
+				return userlist;
+			}
+			for(int i=0,j=0,l=0 ; i< userlist_temp.size() && l < rows; i++){
+				j++;
+				if(j > (page-1)*rows ){
+					userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+					userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+					userlist.add(userlist_temp.get(i));
+					l++;
+				}
+			}
+			return  userlist;
+		}
+		for(int i=0,j=0,k=0 ; i < userlist_temp.size() && j < rows ; i++){
+			if(null != loginname){
+				if(userlist_temp.get(i).getLoginname().indexOf(loginname) >= 0){
+					k++;
+					if(k >= (page-1)*rows){
+						userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+						userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+						userlist.add(userlist_temp.get(i));
+						j++;
+					}
+					continue;
+				}else{
+					continue;
+				}
+			}
+			
+			if(null != name){
+				if(userlist_temp.get(i).getName().indexOf(name) >= 0){
+					k++;
+					if(k >= (page-1)*rows){
+						userlist_temp.get(i).setGrade(getGrade(userlist_temp.get(i).getId()));
+						userlist_temp.get(i).setSatisfied(getSatisfied(userlist_temp.get(i).getId()));
+						userlist.add(userlist_temp.get(i));
+						j++;
+					}
+					continue;
+				}else{
+					continue;
+				}
+			}
+		}
+		return userlist;
+	}
+
+	public Long shopManagerSize(String loginname, String name) {
+		List<User> userlist_temp = em.find(Role.class, "shangchengguanliyuan").getUsers();
+		List<User> userlist = new ArrayList<User>();
+		if(null == name && null == loginname){
+			userlist = userlist_temp;
+		}else{
+			for(User user : userlist_temp){
+				if(null != loginname){
+					if(user.getLoginname().indexOf(loginname) >= 0){
+						userlist.add(user);
+						continue;
+					}
+				}
+				if(null != name){
+					if(user.getName().indexOf(name) >= 0){
+						userlist.add(user);
+						continue;
+					}
+				}
+			}
+		}
+		return (long)userlist.size();
+	}
+	
+}

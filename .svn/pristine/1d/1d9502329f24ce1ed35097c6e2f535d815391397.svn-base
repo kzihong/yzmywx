@@ -1,0 +1,138 @@
+package cn.easycode.yzmywx.services.wechat;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Map;
+
+import javax.ejb.EJB;
+import javax.ejb.Stateless;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+
+import org.codehaus.jackson.map.ObjectMapper;
+
+import net.sf.json.JSONObject;
+
+import cn.easycode.yzmywx.bean.vo.GG;
+import cn.easycode.yzmywx.bean.vo.ReturnData;
+import cn.easycode.yzmywx.bean.vo.SearchData;
+import cn.easycode.yzmywx.dao.wechat.MessageDAO;
+import cn.easycode.yzmywx.utils.CheckUtil;
+import cn.easycode.yzmywx.utils.ConfigUtil;
+import cn.easycode.yzmywx.utils.WeixinUtil;
+
+
+
+@Stateless
+@Path("message")
+public class MessageRest {
+	@EJB
+	MessageDAO messageDAO;
+	
+	@GET
+	@Path("link")
+	public String docheck(@Context HttpServletRequest req)
+	{
+		String signature = req.getParameter("signature");
+		String timestamp = req.getParameter("timestamp");
+		String nonce = req.getParameter("nonce");
+		String echostr = req.getParameter("echostr");
+		String token = ConfigUtil.get("token");
+		if(CheckUtil.checkSignature(signature, timestamp, nonce,token)){
+			return echostr;
+		}
+		else 
+			return "";
+	}
+	
+	@POST
+	@SuppressWarnings("finally")
+	@Path("link")
+	public String acceptMsg(@Context HttpServletRequest req)
+	{
+		String message = null;
+		try {
+			Map<String, String> map = WeixinUtil.xmlToMap(req);
+			message = messageDAO.handleMessage(map);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			System.out.println(message);
+			return message;
+		}
+	}
+	
+	@SuppressWarnings("finally")
+	@Path("checkJSapi")
+	@POST
+	public String checkJsapi(SearchData searchData){
+		ObjectMapper objectMapper = new ObjectMapper();
+		String returnsString = null;
+		try {
+			String jsapi_ticket = messageDAO.getJSapi();
+			String SignatureString = "jsapi_ticket="+jsapi_ticket;
+			SignatureString +="&noncestr="+searchData.getNonceStr();
+			SignatureString +="&timestamp="+searchData.getTimestap();
+			SignatureString +="&url="+searchData.getUrl();
+			System.out.println(SignatureString);
+			searchData.setSignature(CheckUtil.getSha1(SignatureString));
+			returnsString = objectMapper.writeValueAsString(searchData);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			return returnsString;
+		}
+	}
+	
+	@SuppressWarnings("finally")
+	@GET
+	@Path("image/{mediaid}")
+	@Produces("image/jpeg")
+	public byte[] getImage(@PathParam("mediaid") String mediaid){
+		byte[] b = null;
+		FileInputStream fis = null;
+		try {
+			String at = messageDAO.getAT();
+			File file = null;
+			file = WeixinUtil.downloadMedia("F:/image/"+mediaid+".jpg", at, mediaid);
+			if(file != null){
+				fis = new FileInputStream(file);
+				b = new byte[fis.available()];
+				fis.read(b);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			b = null;
+		} finally {
+			try {
+				if (fis != null) {
+					fis.close();
+				}
+			} catch (Exception e2) {
+				b = null;
+				e2.printStackTrace();
+			}
+			return b;
+		}
+	}
+	
+	@POST
+	@Path("gg")
+	@Consumes("application/json")
+	@Produces("application/json")
+	public ReturnData gg(GG gg,@Context HttpServletRequest req){
+		ReturnData rdData = new ReturnData();
+		req.getSession().setAttribute("response_type", gg.getResponse_type());
+		req.getSession().setAttribute("scope", gg.getScope());
+		rdData.setErrmsg(gg.getResponse_type());
+		return rdData;
+	}
+	
+	
+}

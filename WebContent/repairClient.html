@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>韵宅维修</title>
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/repairClient.css"/>
+    <script src="js/repairClient.js"></script>
+</head>
+<body>
+<div class="repair-banner">
+    木业维修
+</div>
+<div class="layout">
+	<form action="uploadimage" method="post" enctype="multipart/form-data" id="form">
+        <div class="imgborder">
+            <img id="img" src="img/addimg.jpg">
+            <input id="file" type="file" class="file" name="file"/>
+            <input id="photo" type="hidden" />
+        </div><br/>
+    </form>
+    <form action="">
+        <div class="container">
+            <div>
+                姓名: <input type="text" id="contact">
+            </div>
+            <div>
+                电话: <input type="text" id="telephone">
+            </div>
+            <div>
+                所在地区: <input type="text" id="address">
+            </div>
+            <div>
+                详细地址: <input type="text" id="address">
+            </div>
+            <div>
+                备注: <input type="text" id="memo">
+            </div>
+        </div>
+
+        <div id="date">
+            <span class="theme">预约时间</span><br />
+            <div class="time" id="time1">
+                <div class="div_display" id="div_date">
+                    <span>年</span>
+                    <span>月</span>
+                    <span>日</span>
+                </div>
+                <span>
+                <select name="year" id="year" class="slt" onchange="myApp.yearchange()">
+                    <option value="2016">2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018">2018</option>
+                    <option value="2019">2019</option>
+                    <option value="2020">2020</option>
+                </select>
+                </span>
+                <span>
+                <select name="month" id="month" class="slt" onchange="myApp.monthchange()">
+                    <option value="01">01</option>
+                    <option value="02">02</option>
+                    <option value="03">03</option>
+                    <option value="04">04</option>
+                    <option value="05">05</option>
+                    <option value="06">06</option>
+                    <option value="07">07</option>
+                    <option value="08">08</option>
+                    <option value="09">09</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                </select>
+                </span>
+                <span>
+                <select name="day" id="day" class="slt" onchange="timeChange()">
+                
+                </select>
+                </span><br />
+            </div>
+            <div class="time" id="time2">
+                <div class="div_display" id="div_time">
+                    <span></span>&nbsp;-
+                    <span></span>时
+                </div>
+                <select name="hour" class="hour" onchange="timeChange()">
+                    <option value="00:00">00:00</option>
+                    <option value="01:00">01:00</option>
+                    <option value="02:00">02:00</option>
+                    <option value="03:00">03:00</option>
+                    <option value="04:00">04:00</option>
+                    <option value="05:00">05:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="07:00">07:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                    <option value="22:00">22:00</option>
+                    <option value="23:00">23:00</option>
+                </select>
+                <select name="hour" class="hour" onchange="timeChange()">
+                    <option value="00:00">00:00</option>
+                    <option value="01:00">01:00</option>
+                    <option value="02:00">02:00</option>
+                    <option value="03:00">03:00</option>
+                    <option value="04:00">04:00</option>
+                    <option value="05:00">05:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="07:00">07:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                    <option value="22:00">22:00</option>
+                    <option value="23:00">23:00</option>
+                </select>
+            </div>
+            <input type="button" class="submit" value="提交订单">
+        </div>
+    </form>
+</div>
+</body>
+	<script type="text/javascript" src="jslib/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="jslib/ajaxfileupload.js"></script>
+    
+<script>
+    var file=document.getElementById("file");
+    var form=document.getElementById('form');
+
+            file.onchange=function(){
+                var img=document.getElementById("img")
+                img.src=window.URL.createObjectURL(file.files[0])
+                img.onload=function(){
+                    window.URL.revokeObjectURL(this.src)
+                }
+                /* document.getElementById('img').onload=function(){
+                    form.submit();
+                } */
+                ajaxFileUpload(file);
+            }
+    
+      function ajaxFileUpload(fileObj) {
+      	var allowExtention = ".gif.jpg.png.jpeg"; //允许上传文件的后缀名
+      	var extention = fileObj.value.substring(fileObj.value.lastIndexOf(".") + 1).toLowerCase();
+      	
+      	//获取浏览器
+      	var browserVersion = window.navigator.userAgent.toUpperCase();
+      	if (allowExtention.indexOf(extention) > -1) {
+      	    $.ajaxFileUpload({
+      	        url : "/uploadimage",
+      	        secureuri : false,
+      	        fileElementId : 'file',
+      	        dataType : 'json',
+      	        //data : {'fileImport' : fileObj.value},
+      	        success : function(data, status) {
+      	        	$("#photo").val(data.url);
+      	        	//$("#img").attr("src",data.url);
+      	        },
+      	        error : function(data, status, e) {
+      	            alert("上传出错");
+      	        }
+      	    });
+      	}else {
+             alert("仅支持" + allowExtention + "为后缀名的文件!");
+             fileObj.value = ""; //清空选中文件
+             if (browserVersion.indexOf("MSIE") > -1) {
+               fileObj.select();
+               document.selection.clear();
+             }
+             fileObj.outerHTML = fileObj.outerHTML;
+      	}
+          return false;
+      }
+</script>
+</html>

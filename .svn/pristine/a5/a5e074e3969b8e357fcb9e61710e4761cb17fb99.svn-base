@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>维修与评价</title>
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/shopping.css"/>
+    <link rel="stylesheet" href="./css/marking.css"/>
+    <!-- 引入字体图标-->
+    <link rel="stylesheet" href="./css/font.css"/>
+    <script src="./js/zepto.min.js"></script>
+</head>
+<body>
+    <div class="layout">
+        <div class="icon-wrench avatar"></div>
+        <div class="line"></div>
+        <div class="title">维修情况</div>
+        <textarea name="" id="text" class="text"></textarea>
+        <div class="line"></div>
+        <div class="title">师傅评分</div>
+        <div class="icon_wrap">
+            <span class="icon-star" index="1"></span>
+            <span class="icon-star" index="2"></span>
+            <span class="icon-star" index="3"></span>
+            <span class="icon-star" index="4"></span>
+            <span class="icon-star" index="5"></span>
+        </div>
+        <input id="btn" type="button" value="点击提交"/>
+    </div>
+    <script>
+        //好评的动画效果
+        var icon=$(".icon-star")
+        var score=0
+        var text=document.getElementById("text")
+        icon.tap(function(){
+            for(var i=5;i--;) {
+                icon[i].style.color="#C1C0C2"
+            }
+
+            var index=this.getAttribute("index")
+            score=index
+            for(var i=index;i--;){
+                icon[i].style.color="#FF8C05"
+            }
+        })
+
+        var btn=document.getElementById("btn")
+        btn.onclick=function(){
+        	var data={
+        			"content":t:text.value,
+        			"grade":s.score
+        	}
+
+            $.ajax({
+                type:"POST",
+                url:"/rest/repair/setEvaluation",
+                contentType: "application/json;charset=utf-8",
+                dataType:'json',
+                data:JSON.stringify(data);
+                success:function(data){
+                	
+                }
+            })
+        }
+
+    </script>
+</body>
+</html>

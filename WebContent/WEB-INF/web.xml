@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" id="WebApp_ID" version="3.0">
+  <display-name>yzmywx</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>
+  
+  <servlet>
+		<servlet-name>jerseyRestful</servlet-name>
+		<servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
+		<init-param>
+			<param-name>javax.ws.rs.Application</param-name>
+			<param-value>cn.easycode.yzmywx.services.RestApplication</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>jerseyRestful</servlet-name>
+		<url-pattern>/rest/*</url-pattern>
+	</servlet-mapping>
+	
+	<filter>
+    <filter-name>CharsetEncodingFilter</filter-name>
+    <filter-class>cn.easycode.yzmywx.filter.CharsetEncodingServlet</filter-class>
+    <init-param>
+      <param-name>encoding</param-name>
+      <param-value>UTF-8</param-value>
+    </init-param>
+  </filter>
+  <filter-mapping>
+    <filter-name>CharsetEncodingFilter</filter-name>
+    <url-pattern>/rest/*</url-pattern>
+  </filter-mapping>
+  <filter>
+    <filter-name>AuthenticationFilter</filter-name>
+    <filter-class>cn.easycode.yzmywx.filter.AuthenticationFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>AuthenticationFilter</filter-name>
+    <url-pattern>/admin/*</url-pattern>
+  </filter-mapping>
+  
+  <servlet>
+    <servlet-name>UploadImageServlet</servlet-name>
+    <servlet-class>cn.easycode.yzmywx.utils.UploadImageServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>UploadImageServlet</servlet-name>
+    <url-pattern>/uploadimage</url-pattern>
+  </servlet-mapping>
+</web-app>

@@ -1,0 +1,72 @@
+package cn.easycode.yzmywx.services.wechat;
+
+import java.util.List;
+
+import javax.ejb.EJB;
+import javax.ejb.Stateless;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Context;
+
+import cn.easycode.yzmywx.bean.eo.shop.Productorder;
+import cn.easycode.yzmywx.bean.vo.weixinorder.BaseResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.PayResult;
+import cn.easycode.yzmywx.dao.shop.ProductOrderDao;
+import cn.easycode.yzmywx.utils.WeixinPay;
+
+/**
+ * 
+ * 商户订单回调接口
+ * @author caimengyuan
+ *
+ */
+@Stateless
+@Path("notify")
+public class NotifyRest {
+	@EJB
+	ProductOrderDao productOrderDao;
+	
+	@POST
+	@Path("payback")
+	public String payback(@Context HttpServletRequest req)
+	{
+		BaseResult baseResult = new BaseResult();
+		try {
+			PayResult payResult = WeixinPay.payback(req.getInputStream());
+			//通知参数
+			if ("SUCCESS".equals(payResult.getReturn_code())) {
+				//业务结果
+				if ("SUCCESS".equals(payResult.getResult_code())) {
+					//商品订单号
+					String orderSn = payResult.getOut_trade_no();
+					
+					List<Productorder> list = productOrderDao.getBySn(orderSn);
+					Productorder productorder = list.get(0);
+					
+					//客户id
+					assert( payResult.getOpenid().equals(productorder.getCustomer().getOpenid()) );
+					//订单金额
+					assert(payResult.getTotal_fee() == productorder.getTotalPrice()*100);
+					
+					productorder.setOrderStatus(ProductOrderDao.PAID);
+					productOrderDao.merge(productorder);
+				}else {
+					baseResult.setReturn_code(payResult.getResult_code());
+					baseResult.setReturn_msg(payResult.getErr_code_des());
+				}
+			}else {
+				baseResult.setReturn_code(payResult.getReturn_code());
+				baseResult.setReturn_msg(payResult.getReturn_msg());
+			}
+		} catch (Exception e) {
+			baseResult.setReturn_code("FAIL");
+			baseResult.setReturn_msg("参数格式校验错误");
+			e.printStackTrace();
+		}
+		return WeixinPay.objectToXml(baseResult);
+	}
+	
+	
+	
+}

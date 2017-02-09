@@ -1,0 +1,35 @@
+body {
+    background: rgb(239, 240, 240);
+}
+
+.wrap_box {
+    border-radius: 30px;
+    width: 90%;
+    background-color: white;
+    margin: 0 auto;
+    margin-top: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+p {
+    margin: 0;
+    text-align: left;
+    margin-left: 40px;
+    margin-right: 40px;
+    margin-top: 30px;
+}
+
+#title{display: inline-block;font-size: 62px;margin-left: 15px;}
+
+.line {
+    height: 1px;
+    background-color: #cccccc;
+    margin-left: 40px;
+    margin-right: 40px;
+    margin-top: 30px;
+}
+
+.font {
+    font-size: 48px
+}

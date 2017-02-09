@@ -1,0 +1,140 @@
+.repair-banner{
+    width:100%;
+    height:50px;
+    margin-bottom: 20px;
+    background:url(../img/repairBanner.png);
+    background-size: 100% auto;
+    text-align: center;
+    line-height: 50px;
+    font-size: 20px;
+    font-family: "黑体";
+    color:white;
+}
+
+.theme{
+    line-height: 40px;
+    display: inline-block;
+    font-size: 16px;
+
+}
+body {
+    background: rgb(239,240,240);
+}
+.imgborder{
+    margin:0 auto;
+    width:85%;
+    border:1px dashed rgb(153,153,153);
+    border-radius: 10px;
+    position: relative;
+    padding:0;
+}
+.imgborder img{
+    width:100%;
+    margin:0;
+    vertical-align: middle;
+    border-radius: 10px;
+}
+.file{
+    opacity: 0;
+    position: absolute;
+    margin:0;
+    width:100%;
+    height: 100%;
+    top:0;
+    left:0;
+    z-index:999;
+}
+.container {
+    width: 80%;
+    margin: 0 auto;
+    background: white;
+    padding: 5px 20px;
+    font-size: 16px;
+    color:rgb(200,200,200);
+    text-align: left;
+    border-bottom: 1px solid rgb(225,225,227);
+    border-top: 1px solid rgb(225,225,227);
+}
+.container div{
+    border-bottom: 1px solid rgb(221,221,221);
+    width:100%;
+    height:32px;
+    padding:1px 0;
+}
+.container div:last-child{
+    border-bottom: 0;
+}
+input{
+    border:none;
+    width: 65%;
+    height: 22px;
+    font-size: 16px;
+}
+
+.time{
+    display: inline-block;
+    width:70%;
+    margin:5px 0;
+    padding:0;
+    position: relative;
+}
+.time span,.time select{
+    margin:0;
+}
+.hour{
+    width:30%;
+    border:1px solid red;
+    opacity: 0.2;
+}
+.submit{
+    margin:10px;
+    background-color: #44b549;
+    width:60%;
+    height:40px;
+    border-radius: 5px;
+    border:0;
+    color:white;
+    font-family: "黑体";
+    font-size: 16px;
+    -webkit-appearance:none;
+}
+.div_display{
+    width:100%;
+    height:100%;
+    background-color: white;
+    position: absolute;
+    top:0;
+    left:0;
+    overflow: hidden;
+    opacity: 0.5;
+    z-index: 1;
+}
+#div_date span{
+    display: inline-block;
+    height:100%;
+    width:32%;
+    text-align: right;
+}
+#time1 select{
+    height:100%;
+    width:32%;
+}
+#div_time span{
+    display: inline-block;
+    height:100%;
+    width:45%;
+    text-align: right;
+}
+.time select{
+    position: relative;
+    width:90%;
+    height:20px;
+    opacity: 0;
+    z-index: 2;
+}
+#time2 select{
+    height:100%;
+    width:49%;
+}
+
+/*还有提交订单  把css样式改了*/ 

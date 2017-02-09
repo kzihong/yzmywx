@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>商品详情</title>
+    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/detail.css" />
+</head>
+<body>
+    <div class="layout">
+            <h1 class="header">商品详情</h1>
+    </div>
+    <div class="container">
+        <div class="detail">
+            <img class="productImg" src="" alt="" />
+            <p>起尼玛嗨名字</p>
+            <p>价格:<span id="price" class="price">9.90</span></p>
+            <p>销量:<span class="number">999</span></p>
+        </div>
+    </div>
+    <div class="buy">
+    <h3>请选择</h3>
+        <form action="">
+            <p>购买数量:</p><span class="changeNumber" onclick="changeNumber(0)">-</span><input autocomplete="off" id="shopNumber" type="text" name="number" value="1" /><span onclick="changeNumber(1)" class="changeNumber">+</span>
+            <p class="font">价格:<span id="total">9.90</span></p><input id="hidden" type="hidden" name="price" value="" /><br />
+            <input class="submit" type="submit" value="立即购买" />
+            <input class="submit" style="background-color: #ec5151;" type="submit" value="加入购物车" />
+        </form>
+    </div>
+</body>
+<script>
+    var number=document.getElementById("shopNumber");
+    var price=document.getElementById("price");
+    var total=document.getElementById("total");
+    var hid=document.getElementById("hidden");
+    function changeNumber(type) {
+        if(type>0){
+            number.value++;
+            hid.value=total.innerHTML=(parseFloat(price.innerHTML)*parseInt(number.value)).toFixed(2);
+        }else{
+            if(number.value!=1){
+                number.value--;
+                hid.value=total.innerHTML=(parseFloat(price.innerHTML)*parseInt(number.value)).toFixed(2);
+            }
+        }
+    }
+</script>
+</html>

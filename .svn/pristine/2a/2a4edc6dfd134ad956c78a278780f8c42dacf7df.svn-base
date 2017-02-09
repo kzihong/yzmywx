@@ -1,0 +1,171 @@
+package cn.easycode.yzmywx.utils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
+
+import cn.easycode.yzmywx.bean.vo.weixinorder.Closeorder;
+import cn.easycode.yzmywx.bean.vo.weixinorder.CloseorderResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Downloadbill;
+import cn.easycode.yzmywx.bean.vo.weixinorder.BaseResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Orderquery;
+import cn.easycode.yzmywx.bean.vo.weixinorder.PayResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.UnifiedorderResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Refund;
+import cn.easycode.yzmywx.bean.vo.weixinorder.RefundResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Refundquery;
+import cn.easycode.yzmywx.bean.vo.weixinorder.RefundqueryResult;
+import cn.easycode.yzmywx.bean.vo.weixinorder.Unifiedorder;
+import cn.easycode.yzmywx.bean.vo.weixinorder.OrderqueryResult;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.thoughtworks.xstream.XStream;
+
+public class WeixinPay {
+
+	//统一下单
+	public static final String UNIFIEDORDER = "https://api.mch.weixin.qq.com/pay/unifiedorder";
+	//查询订单
+	public static final String ORDERQUERY = "https://api.mch.weixin.qq.com/pay/orderquery";
+	//关闭订单
+	public static final String CLOSEORDER = "https://api.mch.weixin.qq.com/pay/closeorder";
+	//申请退款
+	public static final String REFUND = "https://api.mch.weixin.qq.com/secapi/pay/refund";
+	//查询退款
+	public static final String REFUNDQUERY = "https://api.mch.weixin.qq.com/pay/refundquery";
+	//下载对账单
+	public static final String DOWNLOADBILL = "https://api.mch.weixin.qq.com/pay/downloadbill";
+	//测速上报
+	public static final String REPORT = "https://api.mch.weixin.qq.com/payitil/report";
+	
+	/**
+	 * 统一下单
+	 * @param unifiedorder
+	 * @return UnifiedorderResult
+	 * @throws Exception
+	 */
+	public static UnifiedorderResult getResult(Unifiedorder unifiedorder) throws Exception{
+		JSONObject jsonObject = doPostStr(UNIFIEDORDER, objectToXml(unifiedorder));
+		
+		return JSON.parseObject(jsonObject.toJSONString(), UnifiedorderResult.class);
+	}
+	
+	/**
+	 * 订单查询
+	 * @param orderquery
+	 * @return
+	 * @throws Exception
+	 */
+	public static OrderqueryResult getResult(Orderquery orderquery) throws Exception{
+		JSONObject jsonObject = doPostStr(ORDERQUERY, objectToXml(orderquery));
+		
+		return JSON.parseObject(jsonObject.toJSONString(), OrderqueryResult.class);
+	}
+	
+	/**
+	 * 关闭订单
+	 * @param closeorder
+	 * @return
+	 * @throws Exception
+	 */
+	public static CloseorderResult getResult(Closeorder closeorder) throws Exception{
+		JSONObject jsonObject = doPostStr(CLOSEORDER, objectToXml(closeorder));
+		
+		return JSON.parseObject(jsonObject.toJSONString(), CloseorderResult.class);
+	}
+	
+	/**
+	 * 申请退款
+	 * @param refund
+	 * @return
+	 * @throws Exception
+	 */
+	public static RefundResult getResult(Refund refund) throws Exception{
+		JSONObject jsonObject = doPostStr(REFUND, objectToXml(refund));
+		
+		return JSON.parseObject(jsonObject.toJSONString(), RefundResult.class);
+	}
+	
+	/**
+	 * 退款查询
+	 * @param refundquery
+	 * @return
+	 * @throws Exception
+	 */
+	public static RefundqueryResult getResult(Refundquery refundquery) throws Exception{
+		JSONObject jsonObject = doPostStr(REFUNDQUERY, objectToXml(refundquery));
+		
+		return JSON.parseObject(jsonObject.toJSONString(), RefundqueryResult.class);
+	}
+	
+	/**
+	 * 下载对账单
+	 * @param downloadbill
+	 * @return
+	 * @throws Exception
+	 */
+	public static BaseResult getResult(Downloadbill downloadbill) throws Exception{
+		JSONObject jsonObject = doPostStr(DOWNLOADBILL, objectToXml(downloadbill));
+		
+		return JSON.parseObject(jsonObject.toJSONString(), BaseResult.class);
+	}
+	
+	/**
+	 * 支付结果通知
+	 * @param ins
+	 * @return
+	 * @throws Exception
+	 */
+	public static PayResult payback(InputStream ins) throws Exception{
+		JSONObject jsonObject = xmlToJson(ins);
+		return JSON.parseObject(jsonObject.toJSONString(), PayResult.class);
+	}
+	
+	private static JSONObject doPostStr(String url,String outStr) throws Exception{
+		DefaultHttpClient client = new DefaultHttpClient();
+		HttpPost httpost = new HttpPost(url);
+		httpost.setEntity(new StringEntity(outStr,"UTF-8"));
+		HttpResponse response = client.execute(httpost);
+		InputStream ins = response.getEntity().getContent();
+		
+		JSONObject jsonObject = xmlToJson(ins);
+		
+		return jsonObject;
+	}
+	
+	public static String objectToXml(Object textMessage){
+		XStream xstream = new XStream();
+		xstream.alias("xml", textMessage.getClass());
+		return xstream.toXML(textMessage);
+	}
+	
+	private static JSONObject xmlToJson(InputStream ins) throws DocumentException, IOException {
+		JSONObject jsonObject = new JSONObject();
+		SAXReader reader = new SAXReader();
+		
+		Document doc = reader.read(ins);
+		
+		Element root = doc.getRootElement();
+		
+		@SuppressWarnings("unchecked")
+		List<Element> list = root.elements();
+		
+		for(Element e : list){
+			jsonObject.put(e.getName(), e.getText());
+		}
+		ins.close();
+		
+		return jsonObject;
+	}
+
+}

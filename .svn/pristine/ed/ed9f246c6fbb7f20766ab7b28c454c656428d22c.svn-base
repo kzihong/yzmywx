@@ -1,0 +1,259 @@
+package cn.easycode.yzmywx.bean.eo.shop;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.Transient;
+
+import cn.easycode.yzmywx.utils.DateUtil;
+
+
+/**
+ * The persistent class for the product database table.
+ * 1. product 2fk
+	1.id UUID 64 vachar 
+	2.name  255 vacher
+	3.createtime long 
+	4.photoUrl 255 vachar
+	5.description text
+	6.price float 
+	7.productSn long 
+	8.category_id vachar 64
+	9.isNew bit 
+	10.isHot bit
+	11.active bit
+	12.type_id varchar 64
+ */
+@Entity
+public class Product implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	private String id;
+
+	private boolean active;
+
+	private Long createtime;
+
+	private String description;
+
+	private boolean isHot;
+
+	private boolean isNew;
+	
+	@Transient
+	private boolean formatisNew;
+	
+	
+	public boolean isFormatisNew() {
+		this.formatisNew = this.isNew;
+		return formatisNew;
+	}
+
+	public void setFormatisNew(boolean formatisNew) {
+		this.formatisNew = formatisNew;
+	}
+
+	private String name;
+
+	private String photoUrl;
+
+	private float price;
+
+	private Long productSn;
+	
+	@ManyToOne
+	@JoinColumn(name="type_id")
+	private Producttype producttype;
+	
+	private int productsales = 0;
+
+	//bi-directional many-to-one association to Productattr
+	/**
+	 * 通过商品取出该商品的一系列属性。
+	 */
+	@OneToMany(cascade={CascadeType.PERSIST,CascadeType.REMOVE},mappedBy="product")
+	private List<Productattr> productattrs;
+	
+	/**
+	 * 通过商品取出该商品的一系列分类。
+	 */
+	@OneToMany(cascade={CascadeType.PERSIST,CascadeType.REMOVE},mappedBy="product")
+	private List<Productcategory> productcategorys;
+
+	public Product() {
+	}
+	
+	@Transient
+	private String formatcreatetime;
+	
+	@Transient
+	private String producttypeid;
+	
+	public String getFormatcreatetime() {
+		if(this.createtime != null){
+			this.formatcreatetime = DateUtil.dateToString(new Date(this.createtime),"yyyy-MM-dd HH:mm:ss");
+		}
+		return formatcreatetime;
+	}
+
+	public void setFormatcreatetime(String formatcreatetime) {
+		this.formatcreatetime = formatcreatetime;
+	}
+	
+	public String getProducttypeid() {
+		return producttypeid;
+	}
+
+	public void setProducttypeid(String producttypeid) {
+		this.producttypeid = producttypeid;
+	}
+
+	public String getId() {
+		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getPhotoUrl() {
+		return this.photoUrl;
+	}
+
+	public void setPhotoUrl(String photoUrl) {
+		this.photoUrl = photoUrl;
+	}
+
+	public float getPrice() {
+		return this.price;
+	}
+
+	public void setPrice(float price) {
+		this.price = price;
+	}
+
+	public List<Productattr> getProductattrs() {
+		return this.productattrs;
+	}
+	
+	public List<Productcategory> getProductcategorys() {
+		return this.productcategorys;
+	}
+
+	public void setProductattrs(List<Productattr> productattrs) {
+		this.productattrs = productattrs;
+	}
+	
+	public void setProductcategorys(List<Productcategory> productcategorys) {
+		this.productcategorys = productcategorys;
+	}
+
+	public Productattr addProductattr(Productattr productattr) {
+		getProductattrs().add(productattr);
+		productattr.setProduct(this);
+
+		return productattr;
+	}
+	
+	public Productcategory addProductcategory(Productcategory productcategory) {
+		getProductcategorys().add(productcategory);
+		productcategory.setProduct(this);
+		return productcategory;
+	}
+
+	public Productattr removeProductattr(Productattr productattr) {
+		getProductattrs().remove(productattr);
+		productattr.setProduct(null);
+
+		return productattr;
+	}
+	
+	public Productcategory removeProductcategory(Productcategory productcategory) {
+		getProductattrs().remove(productcategory);
+		productcategory.setProduct(null);
+
+		return productcategory;
+	}
+
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
+	public Long getCreatetime() {
+		return createtime;
+	}
+
+	public void setCreatetime(Long createtime) {
+		this.createtime = createtime;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public boolean isHot() {
+		return isHot;
+	}
+
+	public void setHot(boolean isHot) {
+		this.isHot = isHot;
+	}
+
+	public boolean isNew() {
+		return isNew;
+	}
+
+	public void setNew(boolean isNew) {
+		this.isNew = isNew;
+	}
+
+	public Long getProductSn() {
+		return productSn;
+	}
+
+	public void setProductSn(Long productSn) {
+		this.productSn = productSn;
+	}
+
+	public Producttype getProducttype() {
+		return producttype;
+	}
+
+	public void setProducttype(Producttype producttype) {
+		this.producttype = producttype;
+	}
+
+	public int getProductsales() {
+		return productsales;
+	}
+
+	public void setProductsales(int productsales) {
+		this.productsales = productsales;
+	}
+
+	
+}

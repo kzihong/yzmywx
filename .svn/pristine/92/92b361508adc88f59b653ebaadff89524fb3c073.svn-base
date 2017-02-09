@@ -1,0 +1,86 @@
+package cn.easycode.yzmywx.bean.eo.shop;
+
+import java.io.Serializable;
+import javax.persistence.*;
+
+import org.codehaus.jackson.annotate.JsonIgnore;
+
+
+/**
+ * The persistent class for the orderitem database table.
+ * 
+13.orderItem 	3fk
+	1.id UUID varchar 64
+	2.product_id varchar 64
+	3.order_id varchar 64
+	4.quantity int 
+	5.product_category varchar 64
+ */
+@Entity
+public class Orderitem implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	private String id;
+
+	private int quantity;
+
+	//bi-directional many-to-one association to Product
+	@ManyToOne
+	private Product product;
+
+	//bi-directional many-to-one association to Productcategory
+	@ManyToOne
+	@JoinColumn(name="product_category")
+	private Productcategory productcategory;
+
+	//bi-directional many-to-one association to Productorder
+	@ManyToOne
+	@JoinColumn(name="order_id")
+	private Productorder productorder;
+
+	public Orderitem() {
+	}
+
+	public String getId() {
+		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public int getQuantity() {
+		return this.quantity;
+	}
+
+	public void setQuantity(int quantity) {
+		this.quantity = quantity;
+	}
+
+	public Product getProduct() {
+		return this.product;
+	}
+
+	public void setProduct(Product product) {
+		this.product = product;
+	}
+
+	public Productcategory getProductcategory() {
+		return this.productcategory;
+	}
+
+	public void setProductcategory(Productcategory productcategory) {
+		this.productcategory = productcategory;
+	}
+
+	@JsonIgnore
+	public Productorder getProductorder() {
+		return this.productorder;
+	}
+
+	public void setProductorder(Productorder productorder) {
+		this.productorder = productorder;
+	}
+
+}

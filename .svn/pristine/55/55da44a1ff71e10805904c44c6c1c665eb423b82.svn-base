@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <title>购物车</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/shopCar.css"/>
+    <script src="js/zepto.min.js"></script>
+</head>
+<body>
+    <div class="layout">
+            <h1 class="header">购物车</h1>
+    </div>
+    <div class="content-wrap">
+	    <div class="content" style="display:none;">     
+	        <img class="productPictures" src="" height="100" width="100" alt=""/>
+	        <p><span class="productName">起尼玛嗨名字</span>(<span class="productcategory"></span>)</p>
+	        <p>单价<span class="price">999</span></p>
+	        <p>销量<span class="number">999</span></p>
+	        <span class="changeNumberleft">-</span><input autocomplete="off" class="shopNumber" type="text" name="number" value="1" /><span class="changeNumberright">+</span>
+	        <input class="remove" type="button" value="删除" />
+	    </div>
+    </div>
+    <div class="nav">
+        总额:<span class="totalPrice">9999</span><input class="sub" type="button" value="结算"  />
+    </div>
+</body>
+<script>   
+	var totalPrice=document.getElementsByClassName('totalPrice')[0];
+    var wrap=document.getElementsByClassName('content-wrap')[0];
+    var content=wrap.getElementsByClassName('content')[0];
+    var temp=content.cloneNode(true);
+    $.ajax({
+    	type:'get',
+    	url:'http://localhost:8080/rest/cart/getCartitems',
+    	contentType:'application/json;charset=utf-8',
+    	success:function(data){ 	
+    		var data=JSON.parse(data);
+    		var len=data.length;
+    		for(var i=0;i<len;i++){
+    			var obj=temp.cloneNode(true);
+    			obj.style.display='block';
+    			obj.getElementsByClassName('productName')[0].innerHTML=data[i].product.name;
+    			obj.getElementsByClassName('remove')[0].setAttribute('indexid',data[i].id);
+    			obj.getElementsByClassName('changeNumberleft')[0].setAttribute('indexid',data[i].id);
+    			obj.getElementsByClassName('changeNumberright')[0].setAttribute('indexid',data[i].id);
+    			obj.getElementsByClassName('productcategory')[0].innerHTML=data[i].productcategory.name;
+    			obj.getElementsByClassName('price')[0].innerHTML=data[i].productcategory.price;
+    			obj.getElementsByClassName('number')[0].innerHTML=data[i].productcategory.inventory;
+    			wrap.appendChild(obj);
+    		}
+    		for(var i=0,len=wrap.getElementsByClassName('remove').length;i<len;i++){
+    	    	wrap.getElementsByClassName('remove')[i].onclick=function(){
+    	    		var flag=confirm('你是否确定要删除');
+    	    		This=this
+    	    		if(flag){	    	    		
+	    	    		$.ajax({
+	    	    			type:'post',
+	    	    			url:'http://localhost:8080/rest/cart/remove/'+this.getAttribute('indexid'),
+	    	    	    	contentType:'application/json;charset=utf-8',
+	    	    			success:function(data){
+	    	    				data=JSON.parse(data);
+	    	    				if(data.success){  	    					
+	    	    					wrap.removeChild(This.parentNode);
+	    	    				}else{
+	    	    					alert(data.errmxg)
+	    	    				}
+	    	    			}
+	    	    		});
+    	    		}
+    	    	}
+    	    }
+    		/*for(var i=0,len=wrap.getElementsByClassName('changeNumberleft').length;i<len;i++){
+    	    	wrap.getElementsByClassName('remove')[i].onclick=function(){
+    	    		$.ajax({
+    	    			type:'post',
+    	    			url:'http://localhost:8080/rest/cart/remove/'+this.getAttribute('indexid'),
+    	    	    	contentType:'application/json;charset=utf-8',
+    	    			success:function(data){
+    	    				
+    	    			}
+    	    		});
+    	    	}
+    	    }
+    		for(var i=0,len=wrap.getElementsByClassName('changeNumberright').length;i<len;i++){
+    	    	wrap.getElementsByClassName('remove')[i].onclick=function(){
+    	    		$.ajax({
+    	    			type:'post',
+    	    			url:'http://localhost:8080/rest/cart/remove/'+this.getAttribute('indexid'),
+    	    	    	contentType:'application/json;charset=utf-8',
+    	    			success:function(data){
+    	    				
+    	    			}
+    	    		});
+    	    	}
+    	    }*/
+    		
+    	}
+    });
+    
+</script>
+</html>

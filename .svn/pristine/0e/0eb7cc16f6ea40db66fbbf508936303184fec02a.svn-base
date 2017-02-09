@@ -1,0 +1,456 @@
+package cn.easycode.yzmywx.dao.repair;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import javax.servlet.http.HttpServletRequest;
+
+import cn.easycode.yzmywx.bean.eo.Customer;
+import cn.easycode.yzmywx.bean.eo.Evaluation;
+import cn.easycode.yzmywx.bean.eo.Repaircategory;
+import cn.easycode.yzmywx.bean.eo.Repairorder;
+import cn.easycode.yzmywx.bean.eo.User;
+import cn.easycode.yzmywx.bean.eo.shop.Shippercoding;
+import cn.easycode.yzmywx.utils.ConfigUtil;
+import cn.easycode.yzmywx.utils.OrderUtil;
+import cn.easycode.yzmywx.utils.ReadExcel;
+
+@Stateless
+public class RepairDao {
+	@PersistenceContext(unitName = "yzmywx")
+	private EntityManager em;
+	
+	private static final short CANCEL=Short.parseShort(ConfigUtil.get("cancel"));
+	private static final short NONHANDLED= Short.parseShort(ConfigUtil.get("nonHandled"));
+	private static final short HANDLED = Short.parseShort(ConfigUtil.get("Handled"));
+	private static final short NONELUATION= Short.parseShort(ConfigUtil.get("nonEvaluation"));
+	private static final short FINISH = Short.parseShort(ConfigUtil.get("finish"));
+	
+	public boolean test() throws Exception{
+		Repairorder repairorder = new Repairorder();
+		repairorder.setAddress("sdf");
+		Long date = new Date().getTime();
+		repairorder.setCustomer(null);
+		repairorder.setId("sf8s");
+		repairorder.setMemo("sdfsdf");
+		repairorder.setModifytime(date);
+		repairorder.setOrderSn(date);
+		repairorder.setPhotoUrl("sdfsdf");
+		repairorder.setUser(null);
+		em.persist(repairorder);
+		return true;
+	}
+	
+	public boolean test2() throws Exception{
+		Repairorder oRepairorder = em.find(Repairorder.class,"sf8s");
+		System.out.println(oRepairorder.getAddress());
+		return true;
+	}
+
+	public String savaOrder(Repairorder repairorder, HttpServletRequest request) {
+		if(repairorder.getAddress() == null){
+			return "false";
+		}else if(repairorder.getBooktimedown() == null){
+			return "false";
+		}else if(repairorder.getBooktimeup() == null){
+			return "false";
+		}else if(repairorder.getContact() == null){
+			return "false";
+		}else if(repairorder.getTelephone() == null){
+			return "false";
+		}
+		repairorder.setId(UUID.randomUUID().toString());
+		repairorder.setCreatetime(new Date().getTime());
+		repairorder.setOrderStatus(NONHANDLED);
+		repairorder.setModifytime(new Date().getTime());
+		repairorder.setCustomer(getCustomer(request));
+		repairorder.setOrderSn(OrderUtil.getSn());
+		repairorder.setRepaircategory(em.find(Repaircategory.class, repairorder.getCategoryidString()));
+		em.persist(repairorder);
+		return repairorder.getId();
+	}
+
+	private Customer getCustomer(HttpServletRequest request) {
+		String openid = (String)request.getSession().getAttribute(ConfigUtil.get("customer"));
+		Customer customer = new Customer();
+		customer.setOpenid(openid);
+		Customer customer2 = em.find(Customer.class, customer.getOpenid());
+		if(customer2 != null){
+			return customer2;
+		}else{
+			em.persist(customer);
+			return customer;
+		}
+	}
+
+	public boolean cancelOrder(String orderid) {
+		Repairorder repairorder = em.find(Repairorder.class, orderid);
+		if(repairorder.getOrderStatus() == CANCEL)
+			return false;
+		repairorder.setOrderStatus(CANCEL);
+		repairorder.setModifytime(new Date().getTime());
+		return true;
+	}
+
+	public boolean assignOrder(List<Repairorder> orders, String userid) {
+		Repairorder repairorder2 = null;
+		for(Repairorder repairorder : orders){
+			repairorder2 = em.find(Repairorder.class, repairorder.getId());
+			repairorder2.setUser(em.find(User.class, userid));
+			repairorder2.setOrderStatus(HANDLED);
+			repairorder2.setModifytime(new Date().getTime());
+			em.merge(repairorder2);
+		}
+		return true;
+	}
+
+	public boolean saveEvaluation(Evaluation evaluation,
+			HttpServletRequest request) {
+		if(evaluation.getContent() == null){
+			return false;
+		}else if(evaluation.getOrderid() == null){
+			return false;
+		}
+		Repairorder repairorder = em.find(Repairorder.class, evaluation.getOrderid());
+		if(repairorder.getOrderStatus() == 3){
+			evaluation.setId(UUID.randomUUID().toString());
+			evaluation.setCustomerId(getCustomer(request).getOpenid());
+			evaluation.setRepairorder(repairorder);
+			evaluation.setCreatetime(new Date().getTime());
+			em.persist(evaluation);
+			repairorder.setOrderStatus(FINISH);
+			repairorder.setModifytime(new Date().getTime());
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	public boolean setFinish(String orderid) {
+		Repairorder repairorder = em.find(Repairorder.class, orderid);
+		if(repairorder.getOrderStatus() == 2){
+			repairorder.setOrderStatus(NONELUATION);
+			repairorder.setModifytime(new Date().getTime());
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Repairorder> queryOrders(String orderStatus) {
+		setStatusfromNonEvaluationtoFinish();
+		String jpql = "select bean from Repairorder bean where 1=1 ";
+		if(orderStatus.equals("")){
+			;
+		}else{
+			jpql += "and bean.orderStatus = :orderStatus ";
+		}
+		Query query = em.createQuery(jpql+"order by bean.createtime desc");
+		if(orderStatus.equals("")){
+			;
+		}else{
+			query.setParameter("orderStatus", Short.parseShort(orderStatus));
+		}
+		List<Repairorder> list = query.getResultList();
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void setStatusfromNonEvaluationtoFinish() {
+		String jpqlString = "select bean from Repairorder bean where bean.orderStatus = 3 and bean.modifytime < :time";
+		Query query = em.createQuery(jpqlString);
+		query.setParameter("time", new Date().getTime() - 7*24*3600*1000);
+		List<Repairorder> list = query.getResultList();
+		for(Repairorder repairorder : list){
+			repairorder.setOrderStatus(FINISH);
+			Evaluation evaluation = new Evaluation();
+			evaluation.setContent(null);
+			evaluation.setGrade((short)5);
+			evaluation.setCustomerId(repairorder.getCustomer().getOpenid());
+			evaluation.setCreatetime(new Date().getTime());
+			evaluation.setId(UUID.randomUUID().toString());
+			evaluation.setRepairorder(repairorder);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Evaluation> queryEvaluation(String level) {
+		String jpqlString = "select bean from Evaluation bean where 1=1 ";
+		if(level.equals("")){
+			;
+		}else{
+			jpqlString += "and bean.grade = :level ";
+		}
+		Query query = em.createQuery(jpqlString+"order by bean.createtime");
+		if(level.equals("")){
+			;
+		}else{
+			query.setParameter("level", Short.parseShort(level));
+		}
+		List<Evaluation> list = query.getResultList();
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Evaluation> queryEvaluationBU(String userid) {
+		if(em.find(User.class, userid) == null){
+			return null;
+		}else{
+			String jpqlString = "select bean from Evaluation bean where bean.repairorder.user.id =:userid ";
+			Query query = em.createQuery(jpqlString);
+			query.setParameter("userid", userid);
+			List<Evaluation> list = query.getResultList();
+			return list;
+		}
+	}
+
+	public Customer getLocation(String customerid) {
+		return em.find(Customer.class, customerid);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Repairorder> queryOrdersBC(String orderStatus, HttpServletRequest request) {
+		setStatusfromNonEvaluationtoFinish();
+		String jpql = "select bean from Repairorder bean where bean.customer.openid = :id ";
+		if(orderStatus.equals("")){
+			;
+		}else{
+			jpql += "and bean.orderStatus = :orderStatus ";
+		}
+		Query query = em.createQuery(jpql+"order by bean.createtime desc");
+		query.setParameter("id", request.getSession().getAttribute("customer"));
+		if(orderStatus.equals("")){
+			;
+		}else{
+			query.setParameter("orderStatus", Short.parseShort(orderStatus));
+		}
+		List<Repairorder> list = query.getResultList();
+		return list;
+	}
+
+	public List<Repairorder> queryOrdersBU(String userid, String orderStatus) {
+		setStatusfromNonEvaluationtoFinish();
+		String jpql = "select bean from Repairorder bean where bean.user.id = :id ";
+		if(orderStatus.equals("")){
+			;
+		}else{
+			jpql += "and bean.orderStatus = :orderStatus ";
+		}
+		Query query = em.createQuery(jpql+"order by bean.createtime desc");
+		query.setParameter("id", userid);
+		if(orderStatus.equals("")){
+			;
+		}else{
+			query.setParameter("orderStatus", Short.parseShort(orderStatus));
+		}
+		@SuppressWarnings("unchecked")
+		List<Repairorder> list = query.getResultList();
+		return list;
+	}
+
+	public Long getListTotal(Short orderStatus, String username,
+			String customername, Long orderSn) {
+		Long total = 0l;
+		String count_sql = "select count(user) from Repairorder user where 1=1 ";
+		String where_sql = "";
+		if(null != username){
+			where_sql += " and user.user.name like :name ";
+		}
+		if(null != customername){
+			where_sql += " and user.contact like :customername ";
+		}
+		if(null != orderStatus){
+			where_sql += " and user.orderStatus = :orderStatus ";
+		}
+		if(null != orderSn){
+			where_sql += " and user.orderSn = :orderSn ";
+		}
+		Query query = em.createQuery(count_sql + where_sql);
+		if(null != username){
+			query.setParameter("name", username + "%");
+		}
+		if(null != customername){
+			query.setParameter("customername", customername + "%");
+		}
+		if(null != orderStatus){
+			query.setParameter("orderStatus", orderStatus);
+		}
+		if(null != orderSn){
+			query.setParameter("orderSn", orderSn);
+		}
+		Object object = query.getSingleResult();
+		if(null != object){
+			total = (Long)object;
+		}
+		return total;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Repairorder> getOrderList(Integer page, Integer rows, Short orderStatus,
+			Long orderSn, String username,
+			String customername) {
+		String query_sql = "select user from Repairorder user where 1=1 ";
+		String where_sql = "";
+		if(null != username){
+			where_sql += " and user.user.name like :name ";
+		}
+		if(null != customername){
+			where_sql += " and user.contact like :customername ";
+		}
+		if(null != orderStatus){
+			where_sql += " and user.orderStatus = :orderStatus ";
+		}
+		if(null != orderSn){
+			where_sql += " and user.orderSn = :orderSn ";
+		}
+		String order_sql = " order by user.createtime desc ";
+		Query query = em.createQuery(query_sql + where_sql + order_sql);
+		if(null != username){
+			query.setParameter("name", username + "%");
+		}
+		if(null != customername){
+			query.setParameter("customername", customername + "%");
+		}
+		if(null != orderStatus){
+			query.setParameter("orderStatus", orderStatus);
+		}
+		if(null != orderSn){
+			query.setParameter("orderSn", orderSn);
+		}
+		
+		if(null == rows) rows = 10;
+		if(null == page) page = 1;
+		
+		query.setMaxResults(rows);
+		query.setFirstResult((page - 1) * rows);
+		
+		List<Repairorder> userlist = query.getResultList();
+		for(Repairorder repairorder : userlist){
+			repairorder.setEvaluation(getEvaluation(repairorder.getId()));
+		}
+		return userlist;
+	}
+
+	public Long getEvaluationListTotal(String username, String customername,
+			Short level) {
+		Long total = 0l;
+		String count_sql = "select count(user) from Evaluation user where 1=1 ";
+		String where_sql = "";
+		if(null != username){
+			where_sql += "and user.repairorder.user.name like :name ";
+		}
+		if(null != customername){
+			where_sql += "and user.repairorder.contact like :customername ";
+		}
+		if(null != level){
+			where_sql += "and user.grade = :level ";
+		}
+		Query query = em.createQuery(count_sql + where_sql);
+		if(null != username){
+			query.setParameter("name", username + "%");
+		}
+		if(null != customername){
+			query.setParameter("customername", customername + "%");
+		}
+		if(null != level){
+			query.setParameter("level", level);
+		}
+		Object object = query.getSingleResult();
+		if(null != object){
+			total = (Long)object;
+		}
+		return total;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Evaluation> getEvaluationList(Integer page, Integer rows, String username,
+			String customername, Short level) {
+		String query_sql = "select user from Evaluation user where 1=1 ";
+		String where_sql = "";
+		if(null != username){
+			where_sql += " and user.repairorder.user.name like :name ";
+		}
+		if(null != customername){
+			where_sql += " and user.repairorder.contact like :customername ";
+		}
+		if(null != level){
+			where_sql += " and user.grade = :level ";
+		}
+		String order_sql = " order by user.createtime desc ";
+		Query query = em.createQuery(query_sql + where_sql + order_sql);
+		if(null != username){
+			query.setParameter("name", username + "%");
+		}
+		if(null != customername){
+			query.setParameter("customername", customername + "%");
+		}
+		if(null != level){
+			query.setParameter("level", level);
+		}
+		if(null == rows) rows = 10;
+		if(null == page) page = 1;
+		
+		query.setMaxResults(rows);
+		query.setFirstResult((page - 1) * rows);
+		
+		List<Evaluation> evaluationlist = query.getResultList();
+		return evaluationlist;
+	}
+	
+	@SuppressWarnings("unchecked")
+	private Evaluation getEvaluation(String orderid){
+		Query query = em.createQuery("select bean from Evaluation bean where bean.repairorder.id = :orderid");
+		query.setParameter("orderid", orderid);
+		List<Evaluation> List = query.getResultList();
+		if(List.size()>0){
+			Evaluation evaluation = new Evaluation();
+			evaluation.setContent(List.get(0).getContent());
+			evaluation.setGrade(List.get(0).getGrade());
+			return evaluation;
+		}
+		else return null;
+	}
+	
+	public boolean setCoding(){
+		try {
+			List<Shippercoding> shipperCodings = new ArrayList<Shippercoding>();
+			Shippercoding shipperCoding = null ;
+			List<List<String>> list = ReadExcel.getExcelContents("D:/ExpressCode.xls", 1, 2);
+			for(int i = 0 ; i < list.size() ; i ++){
+				shipperCoding = new Shippercoding();
+				shipperCoding.setShipperCode(list.get(i).get(0));
+				shipperCoding.setShipperName(list.get(i).get(1));
+				shipperCodings.add(shipperCoding);
+				em.persist(shipperCoding);
+			}
+			for(Shippercoding shipperCoding2 : shipperCodings){
+				System.out.println(shipperCoding2.getShipperCode()+":"+shipperCoding2.getShipperName());
+			}
+			return true;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Repairorder> getPersonOrder(HttpServletRequest request) {
+		String openidString = (String)request.getSession().getAttribute(ConfigUtil.get("customer"));
+		Query query = em.createQuery("select bean from Repairorder bean where bean.customer.openid = :openid order by bean.createtime desc");
+		query.setParameter("openid", openidString);
+		return query.getResultList();
+	}
+
+	public Repairorder getByOrderId(String orderid) {
+		return em.find(Repairorder.class, orderid);
+	}
+	
+}

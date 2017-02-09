@@ -1,0 +1,17 @@
+body {
+    background: rgb(239,240,240);
+    color: #C1C0C2;
+}
+
+.avatar{font-size: 10em;color: #cccccc;margin-top: 40px;}
+
+.line{height: 2px;background-color: #cccccc;width: 80%;margin: 40px auto 0}
+
+.title{background-color: rgb(239,240,240);width: 80px;margin: -8px auto 0}
+
+.text{width: 78%;margin-top: 20px;height: 60px;}
+
+.icon_wrap{margin-top: 20px;font-size: 30px;}
+
+
+.good{color: #FF8C05}

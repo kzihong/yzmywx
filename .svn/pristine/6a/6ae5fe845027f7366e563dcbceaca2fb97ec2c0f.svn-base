@@ -1,0 +1,408 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@page import="net.sf.json.JSONObject"%>
+<%@page import="cn.easycode.yzmywx.utils.WeixinUtil"%>
+<%@page import="cn.easycode.yzmywx.utils.ConfigUtil"%>
+<%
+	String path = request.getContextPath();
+	String appid = ConfigUtil.get("appid");
+	String code = request.getParameter("code");
+	String url = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=APPID&secret=SECRET&code=CODE&grant_type=authorization_code";
+	url = url.replace("APPID", ConfigUtil.get("appid")).replace("SECRET", ConfigUtil.get("appsecret")).replace("CODE", code);
+	JSONObject jo = WeixinUtil.doGetStr(url);
+	System.out.println(jo.toString());
+	request.getSession().setAttribute(ConfigUtil.get("customer"), jo.get("openid"));
+	String access_token = jo.getString("access_token");
+	String state = request.getParameter("state"); 
+	String categoryidString = null; 
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>韵宅维修</title>
+    <link rel="stylesheet" href="./css/reset.css"/>
+    <link rel="stylesheet" href="./css/common.css"/>
+    <link rel="stylesheet" href="./css/repairClient.css"/>
+	<script type="text/javascript" src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js "></script>
+
+</head>
+<body>
+<div class="repair-banner">
+<%if(state.equals("door")){%>
+    木业维修
+    
+<% 
+categoryidString = "1001";
+}%>
+<%if(state.equals("sd")){%>
+    水电维修
+<% 
+categoryidString = "2001";
+}%>
+<%if(state.equals("other")){%>
+    其他维修
+<% 
+categoryidString = "3001";
+}%>
+</div>
+<div class="layout">
+        <div class="imgborder">
+            <img id="img" src="img/addimg.jpg">
+            <input type="button" value="sdgsdg" id="file" class="file" onclick="chooseImg()"/>
+            <input id="photo" type="hidden" />
+        </div><br/>
+    <form action="">
+        <div class="container">
+            <div>
+                姓名: <input type="text" id="contact">
+            </div>
+            <div>
+                电话: <input type="text" id="telephone">
+            </div>
+            <div>
+                所在地区: <input type="text" id="address">
+            </div>
+            <div>
+                详细地址: <input type="text" id="addressDetail">
+            </div>
+            <div>
+                备注: <input type="text" id="memo">
+            </div>
+        </div>
+
+        <div id="date">
+            <span class="theme">预约时间</span><br />
+            <div class="time" id="time1">
+                <div class="div_display" id="div_date">
+                    <span>年</span>
+                    <span>月</span>
+                    <span>日</span>
+                </div>
+                <span>
+                <select name="year" id="year" class="slt" onchange="myApp.yearchange()">
+                    <option value="2016">2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018">2018</option>
+                    <option value="2019">2019</option>
+                    <option value="2020">2020</option>
+                </select>
+                </span>
+                <span>
+                <select name="month" id="month" class="slt" onchange="myApp.monthchange()">
+                    <option value="01">01</option>
+                    <option value="02">02</option>
+                    <option value="03">03</option>
+                    <option value="04">04</option>
+                    <option value="05">05</option>
+                    <option value="06">06</option>
+                    <option value="07">07</option>
+                    <option value="08">08</option>
+                    <option value="09">09</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                </select>
+                </span>
+                <span>
+                <select name="day" id="day" class="slt" onchange="timeChange()">
+                
+                </select>
+                </span><br />
+            </div>
+           <div class="time" id="time2">
+                <div class="div_display" id="div_time">
+                    <span></span>&nbsp;-
+                    <span></span>时
+                </div>
+                <select name="hour" class="hour" onchange="timeChange()">
+                    <option value="00:00">00:00</option>
+                    <option value="01:00">01:00</option>
+                    <option value="02:00">02:00</option>
+                    <option value="03:00">03:00</option>
+                    <option value="04:00">04:00</option>
+                    <option value="05:00">05:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="07:00">07:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                    <option value="22:00">22:00</option>
+                    <option value="23:00">23:00</option>
+                </select>
+                <select name="hour" class="hour" onchange="timeChange()">
+                    <option value="00:00">00:00</option>
+                    <option value="01:00">01:00</option>
+                    <option value="02:00">02:00</option>
+                    <option value="03:00">03:00</option>
+                    <option value="04:00">04:00</option>
+                    <option value="05:00">05:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="07:00">07:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                    <option value="22:00">22:00</option>
+                    <option value="23:00">23:00</option>
+                </select>
+            </div>
+            <input type="button" class="submit" value="提交订单">
+            <div id="container" tabindex="0"></div>
+        </div>
+    </form>
+    <input type="button" onclick="showAddress()">
+</div>
+<script type="text/javascript" src="js/zepto.min.js"></script>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=ff0792157bdd471890e1ab2eb133b771"></script>
+<script src="js/repairClient.js"></script>
+
+<script>
+		$.ajax({
+			type:'post',
+			url:'/rest/repair/getLocation',
+			contentType:'application/json;charset=utf-8',
+			dataType:'json',
+			success:function(data){
+				var location =data;
+				var address=[];
+				address['lat']=location.latitude;
+				address['lng']=location.longitude;
+				lnglatXY = [address['lng'],address['lat'] ]; //已知点坐标
+			    var map = new AMap.Map('container',{
+			        resizeEnable: true,
+			        zoom: 13,
+			        center: lnglatXY
+			});
+			AMap.plugin('AMap.Geocoder',function(){
+			    var geocoder = new AMap.Geocoder({
+			        city: "010"//城市，默认：“全国”
+			    });
+			    var marker = new AMap.Marker({
+			        map:map,
+			        bubble:true
+			    })
+
+			        marker.setPosition(lnglatXY);
+			        geocoder.getAddress(lnglatXY,function(status,result){
+			          if(status=='complete'){
+			              var address = result.regeocode.formattedAddress; //返回地址描述
+			           	//进行数据切割
+			           	var index=address.indexOf("市");
+			           	var area=address.slice(0,index+1);
+			           	document.getElementById("address").value = area;
+			          }
+			        });
+			});
+		        },
+			error:function(){
+				
+			}
+		});
+	
+
+	function validateForm(contact,telephone,address,memo,formatbooktimedown,formatbooktimeup){
+	   var json = JSON.stringify({
+	       "address" : address,
+	       "memo" : memo,                      //备注
+	       "telephone" : telephone,
+	       "contact" : contact,                   //姓名
+	       "formatbooktimeup" : formatbooktimeup,          //预约时间上限
+	       "formatbooktimedown" : formatbooktimedown,     //预约时间下限
+	       "photoUrl" : $("#photo").val(),
+	       "categoryidString":"<%=categoryidString%>"
+	    });
+	    
+	    $.ajax({
+	    	type: "POST",
+	           url: "/rest/repair/savaRepairOrder",
+	           contentType: "application/json;charset=utf-8",
+	           data:json,
+	           dataType:'json',
+	           success: function (data) {
+	        	   if(data.success){
+		           	window.location.href = "repairdetail.jsp?orderid="+data.errmsg;
+	        	   }else{
+	        		   alert(data.errmsg);
+	        	   }
+	           }
+	    });
+	    $("#photo").val("");
+	}
+	function postAjax(url_post, data) {
+		var result="" ;
+		$.ajax({
+			type : 'POST',
+			contentType : "application/json; charset=utf-8",
+			url : url_post,
+			data : JSON.stringify(data),							
+			success : function(result1) { result = result1; },
+			dataType : 'json',
+			error : function(XMLHttpRequest, textStatus, errorThrown) { },
+			async: false
+		});
+		return result;
+	}
+	
+	function postAjaxNoData(url_post) {
+		var result="" ;
+		$.ajax({
+			type : 'POST',
+			contentType : "application/json; charset=utf-8",
+			url : url_post,						
+			success : function(result1) { result = result1; },
+			dataType : 'json',
+			error : function(XMLHttpRequest, textStatus, errorThrown) { },
+			async: false
+		});
+		return result;
+	}
+</script>
+<script type="text/javascript">
+function getNonceStr(len){
+	  len = len || 32;
+	  var chars = 'abcdefhijkmnprstwxyz2345678';    /****默认去掉了容易混淆的字符oOLl,9gq,Vv,Uu,I1****/
+	  var maxPos = chars.length;
+	  var pwd = '';
+	  for (var i = 0; i <len; i++) {
+	    pwd += chars.charAt(Math.floor(Math.random() * maxPos));
+	  }
+	  return pwd;
+}
+var timestamp = Date.parse(new Date())/1000;
+var nonceStr = getNonceStr(10);
+var searchurl = window.location.href.split('#')[0];
+alert(searchurl);
+var json = {
+		"timestap":timestamp,
+		"nonceStr":nonceStr,
+		"url":searchurl
+};
+var url="/rest/message/checkJSapi";
+var signature = postAjax(url,json).signature;
+wx.config({
+    debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+    appId: '<%=appid%>', // 必填，公众号的唯一标识
+    timestamp: timestamp, // 必填，生成签名的时间戳
+    nonceStr: nonceStr, // 必填，生成签名的随机串
+    signature: signature,// 必填，签名，见附录1
+    jsApiList: ["chooseImage","previewImage","uploadImage","downloadImage","onMenuShareAppMessage","openAddress"]
+});
+wx.ready(function(){
+	wx.onMenuShareAppMessage({
+	    title: 'cap', // 分享标题
+	    desc: '呵呵呵大', // 分享描述
+	    link: 'www.baidu.com', // 分享链接
+	    imgUrl: '', // 分享图标
+	    type: '', // 分享类型,music、video或link，不填默认为link
+	    dataUrl: '', // 如果type是music或video，则要提供数据链接，默认为空
+	    success: function () { 
+	        // 用户确认分享后执行的回调函数
+	    },
+	    cancel: function () { 
+	        // 用户取消分享后执行的回调函数
+	    }
+	});
+	
+    // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+});
+wx.error(function(res){
+	alert(res);
+    // config信息验证失败会执行error函数，如签名过期导致验证失败，具体错误信息可以打开config的debug模式查看，也可以在返回的res参数中查看，对于SPA可以在这里更新签名。
+
+});
+function showAddress(){
+	var timeStamp = ""+timestamp;
+	var addrSigndata = {
+			"access_token" : "<%=access_token%>",
+			"timeStap": timeStamp,
+			"nonceStr": nonceStr,
+			"url":searchurl,
+			"appid": '<%=appid%>',
+	};
+	var addrSign = postAjax("rest/message/getAddrSign",addrSigndata).addrSign;
+	alert(addrSign)
+	WeixinJSBridge.invoke('editAddress', {
+		"appId": '<%=appid%>',
+		"scope": "jsapi_address",
+		"signType":"sha1",
+		"addrSign": addrSign,
+		"timeStamp": timeStamp,
+		"nonceStr": nonceStr,
+		}, function (res) {
+				alert(JSON.stringify(res))
+			if(res == ""){
+				
+			}else{
+			}
+			//若res中所带的返回值不为空，则表示用户选择该返回值作为收货地址。
+			//否则若返回空，则表示用户取消了这一次编辑收货地址。
+			/* document.form1.address1.value = res.proviceFirstStageName;
+			document.form1.address2.value = res.addressCitySecondStageName;
+			document.form1.address3.value = res.addressCountiesThirdStageName;
+			document.form1.detail.value = res.addressDetailInfo;
+			document.form1.phone.value = res.telNumber; */
+		});
+}
+function uploadImg(localIds){
+	wx.uploadImage({
+        localId: localIds, // 需要上传的图片的本地ID，由chooseImage接口获得
+        isShowProgressTips: 1, // 默认为1，显示进度提示
+        success: function (res) {
+           /*  var serverId = res.serverId;  */// 返回图片的服务器端ID
+           var url = "/rest/editor/downloadPic/";
+           var result = postAjaxNoData(url+res.serverId);
+           if(result.success){
+	           $("#photo").val(result.errmsg);
+           }else{
+        	   alert(result.errmsg);
+           }
+        }
+    });
+}
+function chooseImg(){
+	wx.chooseImage({
+	    hcount: 1, // 默认9
+	    sizeType: 'compressed', // 可以指定是原图还是压缩图，默认二者都有
+	   /*  sourceType: ['album', 'camera'],  */// 可以指定来源是相册还是相机，默认二者都有
+	    success: function (res) {
+	        /* var localIds = res.localIds; */ // 返回选定照片的本地ID列表，localId可以作为img标签的src属性显示图片
+	        $("#img").attr('src',res.localIds[0]);
+	        uploadImg(res.localIds[0]);
+	        
+	    }
+	});
+}
+</script>
+</body>
+
+
+</html>
+
+  
+    
+
+

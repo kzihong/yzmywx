@@ -1,0 +1,57 @@
+package cn.easycode.yzmywx.bean.eo.shop;
+
+import java.io.Serializable;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+
+/**
+ * The persistent class for the pevaluation database table.
+ * 8.pevaluation
+	1.id	UUID 64
+	2.content
+	3.grade
+
+ */
+@Entity
+@Table(name = "pevaluation")
+public class Pevaluation implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	private String id;
+
+	private String content;
+
+	private short grade;
+
+	public Pevaluation() {
+	}
+
+	public String getId() {
+		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getContent() {
+		return this.content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+
+	public short getGrade() {
+		return this.grade;
+	}
+
+	public void setGrade(short grade) {
+		this.grade = grade;
+	}
+
+}

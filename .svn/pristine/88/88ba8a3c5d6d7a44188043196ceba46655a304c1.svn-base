@@ -1,0 +1,525 @@
+package cn.easycode.yzmywx.dao.shop;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang3.StringUtils;
+
+import cn.easycode.yzmywx.bean.eo.Customer;
+import cn.easycode.yzmywx.bean.eo.shop.Cartitem;
+import cn.easycode.yzmywx.bean.eo.shop.Delivery;
+import cn.easycode.yzmywx.bean.eo.shop.Orderitem;
+import cn.easycode.yzmywx.bean.eo.shop.Payment;
+import cn.easycode.yzmywx.bean.eo.shop.Pevaluation;
+import cn.easycode.yzmywx.bean.eo.shop.Product;
+import cn.easycode.yzmywx.bean.eo.shop.Productcategory;
+import cn.easycode.yzmywx.bean.eo.shop.Productorder;
+import cn.easycode.yzmywx.bean.eo.shop.Shipinfo;
+import cn.easycode.yzmywx.bean.eo.shop.Shippercoding;
+import cn.easycode.yzmywx.bean.vo.ship.ShipRequestData;
+import cn.easycode.yzmywx.utils.ConfigUtil;
+import cn.easycode.yzmywx.utils.OrderUtil;
+import cn.easycode.yzmywx.utils.ShipUtil;
+
+@Stateless
+public class ProductOrderDao {
+	@PersistenceContext(unitName = "yzmywx")
+	private EntityManager em;
+	
+	//下单，未付款
+	private static final short AWAITPAY = Short.parseShort(ConfigUtil.get("awaitPay"));
+	//已付款，待发货
+	private static final short PAID = Short.parseShort(ConfigUtil.get("paid"));
+	//已发货，待签收
+	private static final short SENT = Short.parseShort(ConfigUtil.get("sent"));
+	//已签收，待评价
+	private static final short CONFIRM = Short.parseShort(ConfigUtil.get("confirm"));
+	//完成订单
+	private static final short COMPLETE = Short.parseShort(ConfigUtil.get("complete"));
+	//申请售后
+	private static final short APPLYREFUND = Short.parseShort(ConfigUtil.get("applyRefund"));
+	//售后完成
+	private static final short REFUNDED = Short.parseShort(ConfigUtil.get("refunded"));
+	//取消订单
+	private static final short CANCELPRODUCTORDER = Short.parseShort(ConfigUtil.get("cancelProductOrder"));
+	
+
+	@SuppressWarnings("unchecked")
+	public List<Productorder> getAll(){
+		Query query = em.createQuery("select p from Productorder p ");
+		List<Productorder> list = query.getResultList();
+		return list;
+	}
+
+	public Productorder getById(String productorderId){
+		return em.find(Productorder.class, productorderId);
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Productorder> getBySn(Long orderSn) {
+		String sql = "select p from Productorder p where p.orderSn = :orderSn ";
+		Query query = em.createQuery(sql);
+		query.setParameter("orderSn", orderSn);
+		query.setMaxResults(1);
+		List<Productorder> list = query.getResultList();
+		return list;
+	}
+	
+	/**
+	 * 下单
+	 * @param customer
+	 * @param cartitems 
+	 * @param shipinfo
+	 * @return
+	 */
+	public boolean book(Customer customer, List<Cartitem> cartitems, Shipinfo shipinfo){
+		
+		Productorder productorder = new Productorder();
+		//uuid
+		productorder.setId(OrderUtil.getUUID());
+		//产生时间
+		productorder.setCreatetime(new Date().getTime());
+		//订单号
+		productorder.setOrderSn(OrderUtil.getSn());
+		//订单状态--未付款
+		productorder.setOrderStatus(AWAITPAY);
+		//计算总价
+		float totalPrice = 0f;
+		int totalAmount = 0;
+		//List<Cartitem> allCartitem = getCartitemByCustomerId(customer.getOpenid());
+		List<Orderitem> orderitems = new ArrayList<Orderitem>();
+		for (Cartitem c : cartitems) {
+			
+			c = em.find(Cartitem.class, c.getId());
+			Product product = c.getProduct();
+			//某一商品的数量
+			int quantity = c.getQuantity();
+			//商品类型
+			Productcategory productcategory = c.getProductcategory();
+			//库存量
+			int inventory = productcategory.getInventory();
+			//判断库存量是否充足
+			if (inventory - quantity < 0) {
+				return false;
+			}
+			//减少库存量
+			productcategory.setInventory(inventory - quantity);
+			em.merge(productcategory);
+			//增加销量
+			int productsales = product.getProductsales();
+			product.setProductsales(productsales + quantity);
+			em.merge(product);
+			
+			float price = productcategory.getPrice();//某一商品的价格
+			//总价格
+			totalPrice += price*quantity;
+			//本单的商品数
+			totalAmount += quantity;
+			
+			//订单条目
+			Orderitem orderitem = new Orderitem();
+			orderitem.setId(OrderUtil.getUUID());
+			orderitem.setProductorder(productorder);
+			orderitem.setProduct(product);
+			orderitem.setProductcategory(productcategory);
+			orderitem.setQuantity(quantity);
+			
+			//保存订单条目
+			orderitems.add(orderitem);
+			//em.persist(orderitem);
+			
+			//删除购物车里的此条目
+			em.remove(c);
+		}
+		float deliveryfee = 0f;
+		if (totalPrice < 100) {
+			deliveryfee = 10;
+		}
+		//邮费
+		productorder.setDeliveryfee(deliveryfee);
+		//设置总价(加上邮费)
+		productorder.setTotalPrice(totalPrice + deliveryfee);
+		//商品总数
+		productorder.setTotalAmount(totalAmount);
+		//邮寄地址详情
+		shipinfo.setId(OrderUtil.getUUID());
+		productorder.setShipinfo(shipinfo);
+		//设置用户
+		productorder.setCustomer(customer);
+		productorder.setOrderitems(orderitems);
+		
+		em.persist(productorder);
+		return true;
+	}
+	
+	/**
+	 * 付款
+	 * @param id
+	 * @return
+	 */
+	public boolean pay(String id, Payment payment) {
+		Productorder productorder = em.find(Productorder.class, id);
+		//必须待付款
+		if (productorder.getOrderStatus() != AWAITPAY) {
+			return false;
+		}
+		productorder.setOrderStatus(PAID);
+		productorder.setModifytime(new Date().getTime());
+		
+		//付款的id
+		payment.setId(OrderUtil.getUUID());
+		payment.setCreatetime(new Date().getTime());
+		
+		em.persist(payment);
+		productorder.setPayment(payment);
+		em.merge(productorder);
+		return true;
+	}
+	
+	/**
+	 * 发货
+	 * @param id
+	 * @return
+	 */
+	public boolean updateDelivery(String id, Delivery delivery) {
+		Productorder productorder = em.find(Productorder.class, id);
+		//必须已付款
+		if (productorder.getOrderStatus() < PAID) {
+			return false;
+		}
+		productorder.setOrderStatus(SENT);
+		productorder.setModifytime(new Date().getTime());
+		
+		if (StringUtils.isBlank(delivery.getId())) {
+			delivery.setShippercoding(em.find(Shippercoding.class, delivery.getShippercode()));
+			delivery.setId(OrderUtil.getUUID());
+		}
+		em.merge(delivery);
+		productorder.setDelivery(delivery);
+		em.merge(productorder);
+		return true;
+	}
+	
+
+	/**
+	 * 确认收货
+	 * @param id
+	 * @param customer 
+	 * @return
+	 */
+	public boolean confirm(String id, Customer customer) {
+		Productorder productorder = em.find(Productorder.class, id);
+		
+		Customer c = productorder.getCustomer();
+		//不是此用户的订单不准操作
+		if (!c.equals(customer)) 
+			return false;
+		//必须已发货
+		if (productorder.getOrderStatus() != SENT)
+			return false;
+		
+		productorder.setOrderStatus(CONFIRM);
+		productorder.setModifytime(new Date().getTime());
+		em.merge(productorder);
+		return true;
+	}
+	
+	/**
+	 * 评价订单
+	 * @param id
+	 * @param pEvaluation
+	 * @param customer 
+	 * @return
+	 */
+	public boolean evaluate(String id, Pevaluation pEvaluation, Customer customer) {
+		Productorder productorder = em.find(Productorder.class, id);
+		
+		Customer c = productorder.getCustomer();
+		//不是此用户的订单不准评价
+		if (!c.equals(customer)) 
+			return false;
+		//必须到收货
+		if (productorder.getOrderStatus() != CONFIRM) {
+			return false;
+		}
+		productorder.setOrderStatus(COMPLETE);
+		productorder.setModifytime(new Date().getTime());
+		
+		//评价的id
+		pEvaluation.setId(OrderUtil.getUUID());
+		
+		em.persist(pEvaluation);
+		productorder.setPevaluation(pEvaluation);
+		em.merge(productorder);
+		
+		return true;
+	}
+	
+	/**
+	 * 申请售后
+	 * @param id
+	 * @return
+	 */
+	public boolean applyrefund(String id) {
+		Productorder productorder = em.find(Productorder.class, id);
+		//必须到订单完成的前提才能申请售后服务
+		if (productorder.getOrderStatus() != COMPLETE) {
+			return false;
+		}
+		productorder.setOrderStatus(APPLYREFUND);
+		productorder.setModifytime(new Date().getTime());
+		em.merge(productorder);
+		return true;
+	}
+	
+	/**
+	 * 售后完成
+	 * @param id
+	 * @return
+	 */
+	public boolean refunded(String id) {
+		Productorder productorder = em.find(Productorder.class, id);
+		//必须是提交了售后申请
+		if (productorder.getOrderStatus() != APPLYREFUND) {
+			return false;
+		}
+		productorder.setOrderStatus(REFUNDED);
+		productorder.setModifytime(new Date().getTime());
+		em.merge(productorder);
+		return true;
+	}
+	
+
+	public boolean merge(Productorder productorder){
+		productorder.setModifytime(new Date().getTime());
+		em.merge(productorder);
+		return true;
+	}
+	
+	/**
+	 * 管理员删除订单
+	 * @param id
+	 * @return
+	 */
+	public boolean delete(String id) {
+		Productorder productorder = em.find(Productorder.class, id);
+		
+		em.remove(productorder);
+		return true;
+	}
+
+
+	/**
+	 * 
+	 * 条件的订单状态查询
+	 * @param page
+	 * @param rows
+	 * @param orderStatus
+	 * @param date 
+	 * @param sort
+	 * @param order
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Productorder> getByCondition(Integer page, Integer rows, Short orderStatus, Date date, String sort, String order) {
+		String query_sql = "select p from Productorder p where 1=1 ";
+		String where_sql = "";
+		
+		//时间
+		if (null != date) {
+			where_sql += " and p.createtime between :today and :tomorrow ";
+		}
+		//状态
+		if (null != orderStatus) {
+			where_sql += " and p.orderStatus = :orderStatus ";
+		}
+
+		String order_sql = " order by p.createtime desc ";
+		if (null != sort && !"".equals(sort)) {
+			order_sql = " order by p." + sort;
+			if (null != order && !"".equals(order)) {
+				order_sql += " " + order;
+			}
+		}
+		Query query = em.createQuery(query_sql + where_sql + order_sql);
+
+		if (null != date) {
+			long today = date.getTime();
+			long tomorrow = today + 1000*3600*24;
+			query.setParameter("today", today);
+			query.setParameter("tomorrow", tomorrow);
+		}
+		
+		if (null != orderStatus) {
+			query.setParameter("orderStatus", orderStatus);
+		}
+
+		if (null == rows)
+			rows = 10;
+		if (null == page)
+			page = 1;
+
+		query.setMaxResults(rows);
+		query.setFirstResult((page - 1) * rows);
+		List<Productorder> rolelist = query.getResultList();
+		return rolelist;
+	}
+
+	/**
+	 * 符合订单状态的数目
+	 * @param orderStatus
+	 * @param date 
+	 * @return
+	 */
+	public Long getSize(Short orderStatus, Date date) {
+		Long total = 0l;
+		String count_sql = "select count(p) from Productorder p where 1=1 ";
+		String where_sql = "";
+		//时间
+		if (null != date) {
+			where_sql += " and p.createtime between :today and :tomorrow ";
+		}
+		//状态
+		if (null != orderStatus) {
+			where_sql += " and p.orderStatus = :orderStatus ";
+		}
+
+		Query query = em.createQuery(count_sql + where_sql);
+
+		if (null != date) {
+			long today = date.getTime();
+			long tomorrow = today + 1000*3600*24;
+			query.setParameter("today", today);
+			query.setParameter("tomorrow", tomorrow);
+		}
+		
+		if (null != orderStatus) {
+			query.setParameter("orderStatus", orderStatus);
+		}
+		Object object = query.getSingleResult();
+		if (null != object) {
+			total = (Long) object;
+		}
+
+		return total;
+	}
+	
+	public String getShipTrack(String orderid) throws Exception {
+		Productorder productorder = em.find(Productorder.class, orderid);
+		if(productorder.getOrderSn() > SENT){
+			ShipRequestData shipRequestData = new ShipRequestData();
+			shipRequestData.setLogisticCode(productorder.getDelivery().getDeliverySn());
+			shipRequestData.setShipperCode(productorder.getDelivery().getShippercoding().getShipperCode());
+			JSONObject jObject= JSONObject.fromObject(shipRequestData);
+			return ShipUtil.getOrderTracesByJson(jObject.toString());
+		}else{
+			return null;
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List<Shippercoding> getShippercodings(){
+		return em.createQuery("select bean from Shippercoding bean").getResultList();
+	}
+
+	public Long getCustomerOrderSize(String openid) {
+		Long total = 0l;
+		String count_sql = "select count(p) from Productorder p where 1=1 ";
+		String where_sql = "";
+		
+		if (null != openid) {
+			where_sql += " and p.customer.openid = :openid ";
+		}
+
+		Query query = em.createQuery(count_sql + where_sql);
+		
+		if (null != openid) {
+			query.setParameter("openid", openid);
+		}
+		Object object = query.getSingleResult();
+		if (null != object) {
+			total = (Long) object;
+		}
+
+		return total;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Productorder> getByCustomer(Integer page, Integer rows, Short orderStatus, String openid) {
+		String query_sql = "select p from Productorder p where 1=1 ";
+		String where_sql = "";
+		//用户
+		if (null != openid) {
+			where_sql += " and p.customer.openid = :openid ";
+		}
+		//状态
+		if (null != orderStatus) {
+			where_sql += " and p.orderStatus = :orderStatus ";
+		}
+
+		String order_sql = " order by p.createtime desc ";
+		
+		Query query = em.createQuery(query_sql + where_sql + order_sql);
+		//用户
+		if (null != openid) {
+			query.setParameter("openid", openid);
+		}
+		//状态
+		if (null != orderStatus) {
+			query.setParameter("orderStatus", orderStatus);
+		}
+
+		if (null == rows)
+			rows = 10;
+		if (null == page)
+			page = 1;
+
+		query.setMaxResults(rows);
+		query.setFirstResult((page - 1) * rows);
+		List<Productorder> rolelist = query.getResultList();
+		return rolelist;
+	}
+
+	public boolean cancel(String id, Customer customer) {
+		Productorder productorder = em.find(Productorder.class, id);
+		
+		Customer c = productorder.getCustomer();
+		//不是此用户的订单不准取消
+		if (!c.equals(customer)) 
+			return false;
+		//必须是未付款状态
+		if (productorder.getOrderStatus() != AWAITPAY) {
+			return false;
+		}
+		List<Orderitem> orderitems = productorder.getOrderitems();
+		for (Orderitem orderitem : orderitems) {
+			Product product = orderitem.getProduct();
+			//商品类型
+			Productcategory productcategory = orderitem.getProductcategory();
+			//库存量
+			int inventory = productcategory.getInventory();
+			//获取订单下每件商品的购物量
+			int quantity = orderitem.getQuantity();
+			//增加库存量
+			productcategory.setInventory(inventory + quantity);
+			em.merge(productcategory);
+			//减少销量
+			int productsales = product.getProductsales();
+			product.setProductsales(productsales - quantity);
+			em.merge(product);
+		}
+		
+		productorder.setModifytime(new Date().getTime());
+		productorder.setOrderStatus(CANCELPRODUCTORDER);
+		em.merge(productorder);
+		return true;
+	}
+}

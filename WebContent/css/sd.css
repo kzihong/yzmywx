@@ -1,0 +1,58 @@
+.header {
+    background-color: #ec5151;
+    color: #fff;
+    padding: 5px 0;
+    font-size: 20px;
+    width: 100%
+}
+
+.wrap {
+    overflow: hidden;
+    position: relative;
+    height: 160px;
+}
+.content {
+    width: 80%;
+    padding: 5px;
+    margin: 10px auto;
+    text-align: left;
+    overflow: hidden;
+    border: 1px solid rgb(230,230,230);
+    color: rgb(150,150,150);
+}
+.productPictures {
+    float: left;
+    border: 0;
+    margin-right: 10px;
+}
+.content a:visited {
+    color: rgb(150,150,150);
+}
+.wrap img {
+    float: left;
+}
+
+.box{
+    position: absolute;
+    left:0;
+}
+#layout {
+	margin-bottom:40px;
+}
+.nav {
+    width: 100%;
+    background-color: #FFFFFF;
+    padding-top: 6px;
+    border-top: 1px solid #cccccc;
+    padding-bottom: 4px;
+}
+
+.nav a {
+    display: inline-block;
+    width: 24%;
+    color: #999;
+    text-align: center;
+    font-size: 24px;
+}
+
+.nav a span{font-size: 18px;}

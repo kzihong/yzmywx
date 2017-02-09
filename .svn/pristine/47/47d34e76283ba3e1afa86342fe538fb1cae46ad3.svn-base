@@ -1,0 +1,72 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="cn.easycode.yzmywx.bean.vo.SessionInfo"%>
+<%@ page import="cn.easycode.yzmywx.utils.ConfigUtil"%>
+<%@ page import="cn.easycode.yzmywx.bean.eo.shop.Delivery"%>
+<%
+	String contextPath = request.getContextPath();
+	SessionInfo sessionInfo = (SessionInfo) session.getAttribute(ConfigUtil.getSessionInfoName());
+	if (sessionInfo == null) {
+		request.getRequestDispatcher("/login.jsp").forward(request, response);
+	}
+	String orderId = request.getParameter("orderId");
+%>
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<jsp:include page="../../inc.jsp"></jsp:include>
+<script src="../../jslib/json2.js" type="text/javascript"></script>
+<script src="../../jslib/ajax.js" type="text/javascript"></script>
+
+</head>
+<body>
+	<input id="orderId" name="orderId" value="<%=orderId%>" style="display:none;" />
+	<form method="post" class="form">
+		<fieldset>
+			<table class="table" style="width:100%;">
+				<tr>
+					<th>联系人：</th>
+					<td><input name="contact" style="width:90%;" readonly="readonly"/></td>
+					<th>联系方式：</th>
+					<td><input name="phoneNum" style="width:90%;" readonly="readonly" /></td>
+				</tr>
+				<tr>
+					<th>区域：</th>
+					<td><input name="shipArea" style="width:90%;"readonly="readonly" /></td>
+					<th>街道：</th>
+					<td><input name="shipStreet" style="width:90%;"readonly="readonly" /></td>
+				</tr>
+				<tr>
+					<th>详细：</th>
+					<td><input name="shipAddress" style="width:90%;"readonly="readonly" /></td>
+					<th>邮政编码：</th>
+					<td><input name="zipcode" style="width:90%;"readonly="readonly" /></td>
+				</tr>
+			</table>
+		</fieldset>
+	</form>
+	
+<script type="text/javascript">
+
+$(function() {
+	//修改新闻的加载
+	if ($(':input[name="orderId"]').val().length > 0) {
+		//parent.$.messager.progress();
+		$.get(sy.contextPath + '/rest/productorder/getShipinfo/' + $(':input[name="orderId"]').val(), function(result) {
+			if (result != undefined) {
+				$('form').form('load', {
+					'contact' : result.contact,
+					'phoneNum' : result.phoneNum,
+					'shipArea' : result.shipArea,
+					'shipStreet' : result.shipStreet,
+					'shipAddress' : result.shipAddress,
+					'zipcode' : result.zipcode
+				});
+			}
+			//parent.$.messager.progress('close');
+		}, 'json');
+	}
+});
+</script>
+</body>
+</html>
